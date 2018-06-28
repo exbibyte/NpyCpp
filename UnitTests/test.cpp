@@ -6,21 +6,34 @@
 #include<iostream>
 #include<map>
 #include<string>
+#include<array>
 
-const size_t Nx = 128;
-const size_t Ny = 64;
-const size_t Nz = 32;
+constexpr size_t Nx{ 128 };
+constexpr size_t Ny{ 64 };
+constexpr size_t Nz{ 32 };
+const std::vector<size_t> shape{ Nz, Ny, Nx };
 
-TEST(TestCaseName, TestName)
+class NpyTests : public ::testing::Test
 {
-	//set random seed so that result is reproducible (for testing)
-	srand(0);
-	//create random data
-	std::vector<std::complex<double>> data(Nx*Ny*Nz);
-	for (int i = 0; i < Nx*Ny*Nz; i++) data[i] = std::complex<double>(rand(), rand());
+public:
+	NpyTests()
+		: data(Nx*Ny*Nz)
+	{
+	}
 
+	void SetUp()
+	{
+		for (int i = 0; i < Nx*Ny*Nz; i++) 
+			data[i] = std::complex<double>(rand(), rand());
+	}
+protected:
+	std::vector<std::complex<double>> data;
+};
+
+TEST_F(NpyTests, ReadAndSave)
+{
 	//save it to file
-	cnpy::npy_save("arr1.npy", &data[0], { Nz,Ny,Nx }, "w");
+	cnpy::npy_save("arr1.npy", &data[0], shape, "w");
 
 	//load it into a new array
 	cnpy::NpyArray arr = cnpy::npy_load("arr1.npy");
@@ -29,7 +42,15 @@ TEST(TestCaseName, TestName)
 	//make sure the loaded data matches the saved data
 	ASSERT_TRUE(arr.word_size == sizeof(std::complex<double>));
 	ASSERT_TRUE(arr.shape.size() == 3 && arr.shape[0] == Nz && arr.shape[1] == Ny && arr.shape[2] == Nx);
-	for (int i = 0; i < Nx*Ny*Nz; i++) ASSERT_TRUE(data[i] == loaded_data[i]);
+
+	for (int i = 0; i < Nx*Ny*Nz; i++) 
+		ASSERT_TRUE(data[i] == loaded_data[i]);
+}
+
+TEST_F(NpyTests, Append)
+{
+	//save it to file
+	cnpy::npy_save("arr1.npy", &data[0], shape, "w");
 
 	//append the same data to file
 	//npy array on file now has shape (Nz+Nz,Ny,Nx)
@@ -43,7 +64,6 @@ TEST(TestCaseName, TestName)
 	cnpy::npz_save("out.npz", "myVar2", &myVar2, { 1 }, "a"); //"a" appends to the file we created above
 	cnpy::npz_save("out.npz", "arr1", &data[0], { Nz,Ny,Nx }, "a"); //"a" appends to the file we created above
 
-																	//load a single var from the npz file
 	cnpy::NpyArray arr2 = cnpy::npz_load("out.npz", "arr1");
 
 	//load the entire npz file
