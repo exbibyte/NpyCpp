@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <cnpy.h>
+#include <Npy++.h>
 
 #include<complex>
 #include<cstdlib>
@@ -11,6 +12,7 @@
 constexpr size_t Nx{ 128 };
 constexpr size_t Ny{ 64 };
 constexpr size_t Nz{ 32 };
+constexpr size_t TotalSize{ Nx * Ny * Nz };
 const std::vector<size_t> shape{ Nz, Ny, Nx };
 
 class NpyTests : public ::testing::Test
@@ -29,6 +31,44 @@ public:
 protected:
 	std::vector<std::complex<double>> data;
 };
+
+TEST_F(NpyTests, NpyReadAndSaveBasic)
+{
+	std::vector<double> a(10, 2);
+	npypp::Save("a.npy", a, { a.size() }, "w");
+
+	auto b = npypp::Load<double>("a.npy");
+	for (int i = 0; i < a.size(); i++)
+		ASSERT_DOUBLE_EQ(a[i], b[i]);
+}
+
+TEST_F(NpyTests, NpyReadAndSave)
+{
+	//save it to file
+	npypp::Save("arr2.npy", data, shape, "w");
+
+	//load it into a new array
+	auto loadedData = npypp::Load<std::complex<double>>("arr2.npy");
+
+	for (int i = 0; i < TotalSize; i++)
+		ASSERT_TRUE(data[i] == loadedData[i]);
+}
+
+TEST_F(NpyTests, NpyReadAndSaveFull)
+{
+	//save it to file
+	npypp::Save("arr2.npy", data, shape, "w");
+
+	//load it into a new array
+	auto loadedData = npypp::LoadFull<std::complex<double>>("arr2.npy");
+	ASSERT_TRUE(loadedData.shape.size() == 3);
+	ASSERT_TRUE(loadedData.shape[0] == Nz);
+	ASSERT_TRUE(loadedData.shape[1] == Ny);
+	ASSERT_TRUE(loadedData.shape[2] == Nx);
+
+	for (int i = 0; i < TotalSize; i++)
+		ASSERT_TRUE(data[i] == loadedData.data[i]);
+}
 
 TEST_F(NpyTests, ReadAndSave)
 {

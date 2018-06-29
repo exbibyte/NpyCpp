@@ -18,10 +18,24 @@
     <ClInclude Include="cnpy.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
+    <ClInclude Include="Npy++.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StringUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cnpy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Npy++.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Npy++.tpp">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
