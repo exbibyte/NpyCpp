@@ -116,13 +116,13 @@ namespace npypp
 		}
 
 		std::string header = detail::GetNpyHeader<T>(actualShape);
-		size_t nels = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
 
 		fseek(fp, 0, SEEK_SET);
 		fwrite(&header[0], sizeof(char), header.size(), fp);
 		fseek(fp, 0, SEEK_END);
 
-		fwrite(&data[0], sizeof(T), nels, fp);
+		fwrite(&data[0], sizeof(T), nElements, fp);
 		fclose(fp);
 	}
 
