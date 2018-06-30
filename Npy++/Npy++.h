@@ -14,6 +14,8 @@
 #include <stdint.h>
 #include <numeric>
 
+#include <Enumerators.h>
+
 namespace npypp
 {
 	namespace detail
@@ -50,11 +52,38 @@ namespace npypp
 		size_t ParseDescription(const std::string& npyHeader);
 
 		void ParseNpyHeader(FILE* fp, size_t& word_size, std::vector<size_t>& shape, bool& fortran_order);
+
+		template<typename T>
+		void Save(const std::string& fileName, 
+				  const std::vector<T> data, 
+				  const std::vector<size_t> shape, 
+				  const std::string& mode = "w",
+				  const size_t dimensionToIncrease = 0);
 	}
 
 	// Generic API
+	/**
+	* If appending, it will increase the number of rows (i.e. the first dimension in the shape vector)
+	* for more flexibility use the Append method
+	*/
 	template<typename T>
-	void Save(const std::string& fileName, const std::vector<T> data, const std::vector<size_t> shape, const std::string& mode = "w");
+	void Save(const std::string& fileName, const std::vector<T> data, const std::vector<size_t> shape, const std::string& mode = "w")
+	{
+		detail::Save(fileName, data, shape, mode, 0);
+	}
+
+	template<typename T>
+	void Save(const std::string& fileName, const std::vector<T> data, const std::vector<size_t> shape, const FileOpenMode mode = FileOpenMode::Write)
+	{
+		Save(fileName, data, shape, ToString(mode));
+	}
+
+	template<typename T>
+	void Append(const std::string& fileName, const std::vector<T> data, const std::vector<size_t> shape, const size_t dimensionToIncrease = 0)
+	{
+		assert(dimensionToIncrease < shape.size());
+		Save(fileName, data, shape, "a", dimensionToIncrease);
+	}
 
 	template<typename T>
 	std::vector<T> Load(const std::string& fileName)
@@ -127,6 +156,18 @@ namespace npypp
 	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const std::string& mode = "w")
 	{
 		Save(fileName, array.data, array.shape, mode);
+	}
+
+	template<typename T>
+	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const FileOpenMode mode = FileOpenMode::Write)
+	{
+		Save(fileName, array.data, array.shape, mode);
+	}
+
+	template<typename T>
+	void Append(const std::string& fileName, const MultiDimensionalArray<T>& array, const size_t dimensionToIncrease = 0)
+	{
+		Append(fileName, array.data, array.shape, dimensionToIncrease);
 	}
 
 	/**

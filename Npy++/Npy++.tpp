@@ -82,48 +82,72 @@ namespace npypp
 			SetNpyHeaderPadding(properties);
 
 			std::string header = GetMagic();
+			std::cout << header << std::endl;
 
 			auto sz = (uint16_t)properties.size();
 			char* szPtr = (char*)&sz;
 			for (size_t byte = 0; byte < sizeof(uint16_t); byte++)
 				header += *(szPtr + byte);
 
+			std::cout << header << std::endl;
 			header.insert(header.end(), properties.begin(), properties.end());
+
+			std::cout << header << std::endl;
 
 			return header;
 		}
 
         #pragma endregion
-	}
 
-	template<typename T>
-	void Save(const std::string& fileName, const std::vector<T> data, const std::vector<size_t> shape, const std::string& mode)
-	{
-		FILE* fp = NULL;
-		std::vector<size_t> actualShape; //if appending, the shape of existing + new data
-
-		if (mode == "a") 
-			fopen(fp, fileName.c_str(), "r+b");
-
-		if (fp)
+		template<typename T>
+		void Save(const std::string& fileName,
+				  const std::vector<T> data,
+				  const std::vector<size_t> shape,
+				  const std::string& mode,
+				  const size_t dimensionToIncrease)
 		{
-			std::abort();
+			FILE* fp = nullptr;
+			std::vector<size_t> actualShape; // if appending, the shape of existing + new data
+
+			if (mode == "a")
+				fopen(fp, fileName.c_str(), "r+b");
+
+			if (fp)
+			{
+				// file exists. we need to append to it. read the header, modify the array size
+				size_t wordSize;
+				bool fortranOrder;
+				detail::ParseNpyHeader(fp, wordSize, actualShape, fortranOrder);
+				assert(!fortranOrder);
+				assert(wordSize == sizeof(T));
+				assert(actualShape.size() == shape.size());
+
+				// by default, append to first element of shape
+				for (size_t i = 0; i < shape.size(); i++)
+				{
+					if (i == dimensionToIncrease)
+						continue;
+					assert(shape[i] == actualShape[i]);
+				}
+				actualShape[dimensionToIncrease] += shape[dimensionToIncrease];
+			}
+			else
+			{
+				fopen(fp, fileName.c_str(), "wb");
+				actualShape = shape;
+			}
+			assert(fp != nullptr);
+
+			std::string header = detail::GetNpyHeader<T>(actualShape);
+			size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
+			fseek(fp, 0, SEEK_SET);
+			fwrite(&header[0], sizeof(char), header.size(), fp);
+			fseek(fp, 0, SEEK_END);
+
+			fwrite(&data[0], sizeof(T), nElements, fp);
+			fclose(fp);
 		}
-		else
-		{
-			fopen(fp, fileName.c_str(), "wb");
-			actualShape = shape;
-		}
-
-		std::string header = detail::GetNpyHeader<T>(actualShape);
-		size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-
-		fseek(fp, 0, SEEK_SET);
-		fwrite(&header[0], sizeof(char), header.size(), fp);
-		fseek(fp, 0, SEEK_END);
-
-		fwrite(&data[0], sizeof(T), nElements, fp);
-		fclose(fp);
 	}
 
 	template<typename T>
@@ -133,6 +157,7 @@ namespace npypp
 
 		FILE* fp = nullptr;
 		fopen(fp, fileName.c_str(), "rb");
+		assert(fp != nullptr);
 
 		std::vector<size_t> shape;
 		size_t wordSize = 0;
@@ -142,9 +167,10 @@ namespace npypp
 		size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
 		data.resize(nElements);
 
-		assert(fread(data.data(), sizeof(T), nElements, fp) == nElements);
+		const size_t charactersRead = fread(data.data(), sizeof(T), nElements, fp);
+		assert(charactersRead == nElements);
+		fclose(fp);
 
-		MultiDimensionalArray<T> out(data, shape);
-		return out;
+		return MultiDimensionalArray<T>(data, shape);
 	}
 }

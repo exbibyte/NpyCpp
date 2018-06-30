@@ -48,7 +48,8 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test.cpp" />
+    <ClCompile Include="NpyUnitTests.cpp" />
+    <ClCompile Include="cnpyUnitTests.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -100,6 +101,8 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>
+      </IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -127,7 +130,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PreprocessorDefinitions>X64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalUsingDirectories>$(SolutionDir)\</AdditionalUsingDirectories>
     </ClCompile>
@@ -138,6 +141,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>
+      </IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

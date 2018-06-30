@@ -50,10 +50,10 @@ namespace npypp
 		std::string GetMagic()
 		{
 			std::string magic = "";
-			magic += (char)0x93;
+			magic += static_cast<char>(0x93);
 			magic += "NUMPY";
-			magic += (char)0x01; //major version of numpy format
-			magic += (char)0x00; //minor version of numpy format
+			magic += static_cast<char>(0x01); //major version of numpy format
+			magic += static_cast<char>(0x00); //minor version of numpy format
 
 			return magic;
 		}
@@ -94,11 +94,12 @@ namespace npypp
 			position += 9;
 			//byte order code | stands for not applicable. 
 			//not sure when this applies except for byte array
-			bool littleEndian = npyHeader[position] == '<' || npyHeader[position] == '|';
+			const bool littleEndian = npyHeader[position] == '<' || npyHeader[position] == '|';
 			assert(littleEndian);
 
 			std::string wordSizeString = npyHeader.substr(position + 2);
 			position = wordSizeString.find("'");
+			assert(position != std::string::npos);
 			return std::atoi(wordSizeString.substr(0, position).c_str());
 		}
 
@@ -106,7 +107,8 @@ namespace npypp
 		{
 			constexpr size_t expectedCharToRead{ 11 };
 			char buffer[256];
-			assert(fread(buffer, sizeof(char), expectedCharToRead, fp) == expectedCharToRead);
+			const size_t charactersRead = fread(buffer, sizeof(char), expectedCharToRead, fp);
+			assert(charactersRead == expectedCharToRead);
 
 			std::string header = fgets(buffer, 256, fp);
 			assert(header[header.size() - 1] == '\n');

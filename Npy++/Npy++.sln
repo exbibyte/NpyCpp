@@ -17,6 +17,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "..\zlib-1.2.7.f-win64-v1\zlib.vcxproj", "{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}"
 EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
@@ -41,11 +44,9 @@ Global
 		{70E62364-4515-45C8-AAFD-72615F22054E}.Release|x86.ActiveCfg = Release|x64
 		{70E62364-4515-45C8-AAFD-72615F22054E}.Release|x86.Build.0 = Release|x64
 		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Debug|x64.ActiveCfg = Debug|x64
-		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Debug|x64.Build.0 = Debug|x64
 		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Debug|x86.ActiveCfg = Debug|x64
 		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Debug|x86.Build.0 = Debug|x64
 		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Release|x64.ActiveCfg = Release|x64
-		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Release|x64.Build.0 = Release|x64
 		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Release|x86.ActiveCfg = Release|x64
 		{DDFE8A05-80E7-4585-A6DD-2566FCCDC66A}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
