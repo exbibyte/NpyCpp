@@ -50,7 +50,7 @@ namespace npypp
 		std::string GetMagic()
 		{
 			std::string magic = "";
-			magic += static_cast<char>(0x93);
+			magic += static_cast<unsigned char>(0x93);
 			magic += "NUMPY";
 			magic += static_cast<char>(0x01); //major version of numpy format
 			magic += static_cast<char>(0x00); //minor version of numpy format

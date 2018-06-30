@@ -9,9 +9,9 @@
 #include<string>
 #include<array>
 
-constexpr size_t Nx{ 128 };
-constexpr size_t Ny{ 64 };
-constexpr size_t Nz{ 32 };
+constexpr size_t Nx{ 20 };
+constexpr size_t Ny{ 40 };
+constexpr size_t Nz{ 60 };
 constexpr size_t TotalSize{ Nx * Ny * Nz };
 const std::vector<size_t> shape{ Nz, Ny, Nx };
 
@@ -34,10 +34,8 @@ protected:
 
 TEST_F(NpyTests, ReadAndSave)
 {
-	//save it to file
 	npypp::Save("arr1.npy", data, shape, "w");
 
-	//load it into a new array
 	auto loadedData = npypp::Load<std::complex<double>>("arr1.npy");
 
 	for (int i = 0; i < TotalSize; i++)
@@ -46,10 +44,8 @@ TEST_F(NpyTests, ReadAndSave)
 
 TEST_F(NpyTests, ReadAndSaveFull)
 {
-	//save it to file
 	npypp::Save("arr1.npy", data, shape, "w");
 
-	//load it into a new array
 	auto loadedData = npypp::LoadFull<std::complex<double>>("arr1.npy");
 	ASSERT_EQ(loadedData.shape.size(), 3);
 	ASSERT_EQ(loadedData.shape[0], Nz);
@@ -61,13 +57,11 @@ TEST_F(NpyTests, ReadAndSaveFull)
 		ASSERT_TRUE(data[i] == loadedData.data[i]);
 }
 
-TEST_F(NpyTests, AppendFromSave)
+TEST_F(NpyTests, Append)
 {
-	//save it to file
 	npypp::Save("arr1.npy", data, shape, "w");
 	npypp::Save("arr1.npy", data, shape, "a");
 
-	//load it into a new array
 	auto loadedData = npypp::Load<std::complex<double>>("arr1.npy");
 
 	ASSERT_EQ(loadedData.size(), 2 * TotalSize);
@@ -79,13 +73,11 @@ TEST_F(NpyTests, AppendFromSave)
 	}
 }
 
-TEST_F(NpyTests, AppendFromSaveFull)
+TEST_F(NpyTests, AppendFull)
 {
-	//save it to file
 	npypp::Save("arr1.npy", data, shape, "w");
 	npypp::Save("arr1.npy", data, shape, "a");
 
-	//load it into a new array
 	auto loadedData = npypp::LoadFull<std::complex<double>>("arr1.npy");
 	ASSERT_EQ(loadedData.shape.size(), 3);
 	ASSERT_EQ(loadedData.shape[0], 2 * Nz);

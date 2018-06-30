@@ -19,7 +19,7 @@ namespace strutils
 	}
 
 	template <class ContainerT>
-	ContainerT Tokenize(const std::string& str, char delim)
+	ContainerT Tokenize(const std::string& str, const char delim)
 	{
 		ContainerT out;
 
