@@ -77,7 +77,6 @@ TEST_F(NpzTests, Append)
 	}
 }
 
-
 TEST_F(NpzTests, AppendFull)
 {
 	npypp::SaveCompressed("out.npz", "arr1", data, shape, "w");

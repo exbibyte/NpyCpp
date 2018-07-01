@@ -98,6 +98,20 @@ namespace npypp
 			return header;
 		}
 
+		template<typename mm::CacheHint ch>
+		void ParseNpyHeader(mm::MemoryMappedFile<ch>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder)
+		{
+			constexpr size_t expectedCharToRead{ 11 };
+			mmf.Advance(expectedCharToRead);
+
+			std::string header = mmf.ReadLine();
+			assert(header[header.size() - 1] == '\n');
+
+			fortranOrder = ParseFortranOrder(header);
+			ParseShape(shape, header);
+			wordSize = ParseDescription(header);
+		}
+
 		template<typename T>
 		MultiDimensionalArray<T> LoadFull(FILE* fp)
 		{
@@ -115,6 +129,25 @@ namespace npypp
 
 			const size_t charactersRead = fread(data.data(), sizeof(T), nElements, fp);
 			assert(charactersRead == nElements);
+
+			return MultiDimensionalArray<T>(data, shape);
+		}
+
+		template<typename T, typename mm::CacheHint ch>
+		MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf)
+		{
+			std::vector<T> data;
+
+			std::vector<size_t> shape;
+			size_t wordSize = 0;
+			bool fortranOrder = false;
+			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder);
+			mmf.Advance(1);  // getting rid of the newline char
+
+			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+			data.resize(nElements);
+
+			mmf.CopyTo(data);
 
 			return MultiDimensionalArray<T>(data, shape);
 		}
@@ -224,15 +257,21 @@ namespace npypp
 	* Load the full info (data and shape) from the file
 	*/
 	template<typename T>
-	MultiDimensionalArray<T> LoadFull(const std::string& fileName)
+	MultiDimensionalArray<T> LoadFull(const std::string& fileName, const bool useMemoryMap)
 	{
-		FILE* fp = nullptr;
-		fopen(fp, fileName.c_str(), "rb");
+		if (!useMemoryMap)
+		{
+			FILE* fp = nullptr;
+			fopen(fp, fileName.c_str(), "rb");
+			auto ret = detail::LoadFull<T>(fp);
+			fclose(fp);
 
-		auto ret = detail::LoadFull<T>(fp);
+			return ret;
+		}
 
-		fclose(fp);
-
+		mm::MemoryMappedFile<> mmf(fileName);
+		assert(mmf.IsValid());
+		auto ret = detail::LoadFull<T, mm::CacheHint::SequentialScan>(mmf);
 		return ret;
 	}
 

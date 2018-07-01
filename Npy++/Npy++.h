@@ -5,21 +5,14 @@
 #include <cassert>
 #include <unordered_map>
 
+#define USE_MEMORY_MAP
+
+#ifdef USE_MEMORY_MAP
+#include <MemoryMappedFile.h>
+#include <MemoryMapEnumerators.h>
+#endif
+
 #include <Enumerators.h>
-////#include <stdexcept>
-////#include <sstream>
-//#include <vector>
-//#include <cstdio>
-////#include <typeinfo>
-//#include <iostream>
-//#include <cassert>
-////#include <zlib.h>
-////#include <map>
-////#include <memory>
-////#include <stdint.h>
-////#include <numeric>
-//
-//#include <Enumerators.h>
 
 namespace npypp
 {
@@ -65,10 +58,16 @@ namespace npypp
 		*/
 		size_t ParseDescription(const std::string& npyHeader);
 
-		void ParseNpyHeader(FILE* fp, size_t& word_size, std::vector<size_t>& shape, bool& fortran_order);
+		void ParseNpyHeader(FILE* fp, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder);
+
+		template<typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
+		void ParseNpyHeader(mm::MemoryMappedFile<ch>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder);
 
 		template<typename T>
 		MultiDimensionalArray<T> LoadFull(FILE* fp);
+
+		template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
+		MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf);
 
         #pragma endregion
 
@@ -168,9 +167,9 @@ namespace npypp
 	}
 
 	template<typename T>
-	std::vector<T> Load(const std::string& fileName)
+	std::vector<T> Load(const std::string& fileName, const bool useMemoryMap = false)
 	{
-		return LoadFull<T>(fileName).data;
+		return LoadFull<T>(fileName, useMemoryMap).data;
 	}
 
 	// API with convenience types
@@ -190,7 +189,7 @@ namespace npypp
 	* Load the full info (data and shape) from the file
 	*/
 	template<typename T>
-	MultiDimensionalArray<T> LoadFull(const std::string& fileName);
+	MultiDimensionalArray<T> LoadFull(const std::string& fileName, const bool useMemoryMap = false);
 
     #pragma endregion
 

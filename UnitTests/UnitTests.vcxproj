@@ -48,6 +48,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MmapNpyUnitTests.cpp" />
     <ClCompile Include="NpyUnitTests.cpp" />
     <ClCompile Include="cnpyUnitTests.cpp" />
     <ClCompile Include="NpzUnitTests.cpp" />
@@ -76,13 +77,15 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalUsingDirectories>$(SolutionDir)\</AdditionalUsingDirectories>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories);$(SolutionDir);$(SolutionDir)\..\MemoryMapping</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;MemoryMapping.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\;$(SolutionDir)..\MemoryMapping\$(Platform)\$(Configuration);$(SolutionDir)..\MemoryMapping\$(Configuration);</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -95,13 +98,15 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalUsingDirectories>$(SolutionDir)\</AdditionalUsingDirectories>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories);$(SolutionDir);$(SolutionDir)\..\MemoryMapping</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;MemoryMapping.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\;$(SolutionDir)..\MemoryMapping\$(Platform)\$(Configuration);$(SolutionDir)..\MemoryMapping\$(Configuration);</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
     </Link>
@@ -114,15 +119,17 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalUsingDirectories>$(SolutionDir)\</AdditionalUsingDirectories>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories);$(SolutionDir);$(SolutionDir)\..\MemoryMapping</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;MemoryMapping.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\;$(SolutionDir)..\MemoryMapping\$(Platform)\$(Configuration);$(SolutionDir)..\MemoryMapping\$(Configuration);</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,15 +140,17 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalUsingDirectories>$(SolutionDir)\</AdditionalUsingDirectories>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories);$(SolutionDir);$(SolutionDir)\..\MemoryMapping</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies);zlib.lib;Npy++.lib;MemoryMapping.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(OutDir)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Platform)\$(Configuration)\;$(SolutionDir)\..\zlib-1.2.7.f-win64-v1\$(Configuration)\;$(SolutionDir)..\MemoryMapping\$(Platform)\$(Configuration);$(SolutionDir)..\MemoryMapping\$(Configuration);</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
     </Link>
