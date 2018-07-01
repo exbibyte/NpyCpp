@@ -2,6 +2,7 @@
 
 #include <complex>
 #include <StringUtilities.h>
+#include <zlib.h>
 
 #ifdef WIN32
     #define fopen(FILE_POINTER, FILE_NAME, MODE) fopen_s(&FILE_POINTER, FILE_NAME, MODE)
@@ -50,6 +51,14 @@ namespace npypp
 
         #pragma endregion
 
+		template<typename T>
+		void appendBytes(std::string& out, const T in)
+		{
+			const char* inPtr = reinterpret_cast<const char*>(&in);
+			for (size_t byteIndex = 0; byteIndex < sizeof(T); ++byteIndex)
+				out += *(inPtr + byteIndex);
+		}
+
         #pragma region Npy Header
 
 		template<typename T>
@@ -82,19 +91,88 @@ namespace npypp
 			SetNpyHeaderPadding(properties);
 
 			std::string header = GetMagic();
-
-			auto sz = properties.size();
-			const char* szPtr = reinterpret_cast<char*>(&sz);
-			for (size_t byte = 0; byte < sizeof(uint16_t); byte++)
-				header += *(szPtr + byte);
+			appendBytes<uint16_t>(header, properties.size());
 
 			header.insert(header.end(), properties.begin(), properties.end());
 
 			return header;
 		}
 
+		template<typename T>
+		MultiDimensionalArray<T> LoadFull(FILE* fp)
+		{
+			assert(fp != nullptr);
+
+			std::vector<T> data;
+
+			std::vector<size_t> shape;
+			size_t wordSize = 0;
+			bool fortranOrder = false;
+			detail::ParseNpyHeader(fp, wordSize, shape, fortranOrder);
+
+			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+			data.resize(nElements);
+
+			const size_t charactersRead = fread(data.data(), sizeof(T), nElements, fp);
+			assert(charactersRead == nElements);
+
+			return MultiDimensionalArray<T>(data, shape);
+		}
+
+        #pragma endregion
+
+        #pragma region Npz Utilities
+
+		template<typename T>
+		uint32_t GetCrcNpyFile(const std::string& npyHeader, const std::vector<T>& data)
+		{
+			const uint32_t crc = crc32(0L, reinterpret_cast<const uint8_t*>(&npyHeader[0]), npyHeader.size());
+			return crc32(crc, reinterpret_cast<const uint8_t*>(&data[0]), data.size() * sizeof(T));
+		}
+
+		template<typename T>
+		MultiDimensionalArray<T> LoadCompressedFull(FILE* fp, uint32_t compressedBytes, uint32_t uncompressedBytes)
+		{
+			std::vector<unsigned char> bufferCompressed(compressedBytes);
+			std::vector<unsigned char> bufferUncompressed(compressedBytes);
+			size_t elementsRead = fread(&bufferCompressed[0], 1, compressedBytes, fp);
+			assert(elementsRead == compressedBytes);
+
+			z_stream stream;
+			stream.zalloc = Z_NULL;
+			stream.zfree = Z_NULL;
+			stream.opaque = Z_NULL;
+			stream.avail_in = 0;
+			stream.next_in = Z_NULL;
+			int err = inflateInit2(&stream, -MAX_WBITS);
+
+			stream.avail_in = compressedBytes;
+			stream.next_in = &bufferCompressed[0];
+			stream.avail_out = uncompressedBytes;
+			stream.next_out = &bufferUncompressed[0];
+
+			err = inflate(&stream, Z_FINISH);
+			err = inflateEnd(&stream);
+
+			std::vector<size_t> shape;
+			size_t wordSize = 0;
+			bool fortranOrder = false;
+			ParseNpyHeader(fp, wordSize, shape, fortranOrder);
+
+			MultiDimensionalArray<T> array;
+			array.shape = shape;
+
+			const int nElementsInBytes = array.data.size() * sizeof(T);
+			size_t offset = uncompressedBytes - nElementsInBytes;
+			memcpy(array.data.data(), &bufferUncompressed[0] + offset, nElementsInBytes);
+
+			return array;
+		}
+
         #pragma endregion
 	}
+
+    #pragma region Load/Save Npy
 
 	template<typename T>
 	void Save(const std::string& fileName,
@@ -106,9 +184,10 @@ namespace npypp
 		std::vector<size_t> actualShape; // if appending, the shape of existing + new data
 
 		if (mode == "a")
-		{
 			fopen(fp, fileName.c_str(), "r+b");
 
+		if (fp)
+		{
 			// file exists. we need to append to it. read the header, modify the array size
 			size_t wordSize;
 			bool fortranOrder;
@@ -123,6 +202,7 @@ namespace npypp
 		}
 		else
 		{
+			// file doesn't exist, needs to be created
 			fopen(fp, fileName.c_str(), "wb");
 			actualShape = shape;
 		}
@@ -140,27 +220,158 @@ namespace npypp
 		fclose(fp);
 	}
 
+	/**
+	* Load the full info (data and shape) from the file
+	*/
 	template<typename T>
 	MultiDimensionalArray<T> LoadFull(const std::string& fileName)
 	{
-		std::vector<T> data;
-
 		FILE* fp = nullptr;
 		fopen(fp, fileName.c_str(), "rb");
-		assert(fp != nullptr);
 
-		std::vector<size_t> shape;
-		size_t wordSize = 0;
-		bool fortranOrder = false;
-		detail::ParseNpyHeader(fp, wordSize, shape, fortranOrder);
+		auto ret = detail::LoadFull<T>(fp);
 
-		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-		data.resize(nElements);
-
-		const size_t charactersRead = fread(data.data(), sizeof(T), nElements, fp);
-		assert(charactersRead == nElements);
 		fclose(fp);
 
-		return MultiDimensionalArray<T>(data, shape);
+		return ret;
 	}
+
+    #pragma endregion
+
+    #pragma region Load/Save Npz
+
+	template<typename T>
+	void SaveCompressed(const std::string& zipFileName, std::string vectorName, const std::vector<T>& data, const std::vector<size_t>& shape, const std::string& mode)
+	{
+		//first, append a .npy to the vector name, since the .npz file stores multiple npy files
+		vectorName += ".npy";
+
+		//now, on with the show
+		FILE* fp = nullptr;
+		uint16_t nRecords = 0;
+		size_t globalHeaderOffset = 0;
+		std::string globalHeader;
+
+		if (mode == "a")
+			fopen(fp, zipFileName.c_str(), "r+b");
+
+		if (fp)
+		{
+			// zip file exists. we need to add a new npy file to it
+
+			// read the footer. this gives us the offset and size of the global header
+			size_t globalHeaderSize;
+			detail::ParseNpzFooter(fp, nRecords, globalHeaderSize, globalHeaderOffset);
+			globalHeader.resize(globalHeaderSize);
+			fseek(fp, globalHeaderOffset, SEEK_SET);
+			
+			//read and store the global header.
+			const size_t elementsRead = fread(&globalHeader[0], sizeof(char), globalHeaderSize, fp);
+			assert(elementsRead == globalHeaderSize);
+
+			// below, we will write the the new data at the start of the global header then append the global header and footer below it
+			fseek(fp, globalHeaderOffset, SEEK_SET);
+		}
+		else
+			fopen(fp, zipFileName.c_str(), "wb");
+		assert(fp != nullptr);
+
+		const std::string npyHeader = detail::GetNpyHeader<T>(shape);
+
+		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		const size_t nElementsInBytes = nElements * sizeof(T);
+		size_t totalNpyFileBytes = nElementsInBytes + npyHeader.size();
+
+		//get the CRC of the data to be added
+		uint32_t crc = detail::GetCrcNpyFile(npyHeader, data);
+
+		// get Npz info
+		std::string localHeader = detail::GetLocalHeader(crc, totalNpyFileBytes, vectorName);
+		detail::AppendGlobalHeader(globalHeader, localHeader, globalHeaderOffset, vectorName);
+		std::string footer = detail::GetNpzFooter(globalHeader, globalHeaderOffset, localHeader.size(), totalNpyFileBytes, nRecords + 1);
+
+		std::cout << "*** LOCAL HEADER *** " << std::endl;
+		std::cout << localHeader << std::endl;
+		std::cout << "******************** " << std::endl;
+
+		std::cout << "*** GLOBAL HEADER *** " << std::endl;
+		std::cout << globalHeader << std::endl;
+		std::cout << "******************** " << std::endl;
+		std::cout << "*** FOOTER *** " << std::endl;
+		std::cout << footer << std::endl;
+		std::cout << "******************** " << std::endl;
+		// write
+		size_t elementsWritten;
+		elementsWritten = fwrite(&localHeader[0], sizeof(char), localHeader.size(), fp);
+		assert(elementsWritten == localHeader.size());
+
+		elementsWritten = fwrite(&npyHeader[0], sizeof(char), npyHeader.size(), fp);
+		assert(elementsWritten == npyHeader.size());
+
+		elementsWritten = fwrite(&data[0], sizeof(T), nElements, fp);
+		assert(elementsWritten == nElements);
+
+		elementsWritten = fwrite(&globalHeader[0], sizeof(char), globalHeader.size(), fp);
+		assert(elementsWritten == globalHeader.size());
+
+		elementsWritten = fwrite(&footer[0], sizeof(char), footer.size(), fp);
+		assert(elementsWritten == footer.size());
+
+		fclose(fp);
+	}
+
+	template<typename T>
+	CompressedMapFull<T> LoadCompressedFull(const std::string& zipFileName)
+	{
+		FILE* fp = nullptr;
+		fopen(fp, zipFileName.c_str(), "rb");
+		assert(fp != nullptr);
+
+		CompressedMapFull<T> ret;
+
+		while (true)
+		{
+			constexpr size_t localHeaderSize{ 30 };
+			std::string localHeader(localHeaderSize, ' ');
+			size_t elementsRead = fread(&localHeader[0], sizeof(char), localHeaderSize, fp);
+			assert(elementsRead == localHeaderSize);
+
+			//if we've reached the global header, stop reading
+			if (localHeader[2] != 0x03 || localHeader[3] != 0x04)
+				break;
+
+			//read in the variable name
+			uint16_t vectorNameLength = *reinterpret_cast<uint16_t*>(&localHeader[26]);
+			std::string vectorName(vectorNameLength, ' ');
+			elementsRead = fread(&vectorName[0], sizeof(char), vectorNameLength, fp);
+			assert(elementsRead == vectorNameLength);
+
+			// remove the extenstion (i.e. ".npy")
+			vectorName.erase(vectorName.end() - 4, vectorName.end());
+
+			// read in the extra field
+			uint16_t extraFieldsLength = *reinterpret_cast<uint16_t*>(&localHeader[28]);
+			if (extraFieldsLength > 0)
+			{
+				std::string tmp(extraFieldsLength, ' ');
+				elementsRead = fread(&tmp[0], sizeof(char), extraFieldsLength, fp);
+				assert(elementsRead == extraFieldsLength);
+			}
+
+			const uint16_t compressionMethod = *reinterpret_cast<uint16_t*>(&localHeader[8]);
+			const uint32_t compressedBytes = *reinterpret_cast<uint32_t*>(&localHeader[18]);
+			const uint32_t uncompressedBytes = *reinterpret_cast<uint32_t*>(&localHeader[22]);
+
+			if (compressionMethod == 0)
+				ret[vectorName] = detail::LoadFull<T>(fp);
+			else
+				ret[vectorName] = detail::LoadCompressedFull<T>(fp, compressedBytes, uncompressedBytes);
+		}
+
+		fclose(fp);
+
+		return ret;
+	}
+
+    #pragma endregion
 }

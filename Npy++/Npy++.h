@@ -1,23 +1,32 @@
 #pragma once
 
 #include <string>
-#include <stdexcept>
-#include <sstream>
 #include <vector>
-#include <cstdio>
-#include <typeinfo>
-#include <iostream>
 #include <cassert>
-#include <zlib.h>
-#include <map>
-#include <memory>
-#include <stdint.h>
-#include <numeric>
+#include <unordered_map>
 
 #include <Enumerators.h>
+////#include <stdexcept>
+////#include <sstream>
+//#include <vector>
+//#include <cstdio>
+////#include <typeinfo>
+//#include <iostream>
+//#include <cassert>
+////#include <zlib.h>
+////#include <map>
+////#include <memory>
+////#include <stdint.h>
+////#include <numeric>
+//
+//#include <Enumerators.h>
 
 namespace npypp
 {
+	// forward declaration as it's used in detail namespace
+	template<typename T>
+	class MultiDimensionalArray;
+
 	namespace detail
 	{
 		char IsBigEndian();
@@ -27,6 +36,11 @@ namespace npypp
 		{
 			static constexpr char id{ '?' };
 		};
+
+		template<typename T>
+		void appendBytes(std::string& out, const T in);  // in is by value as it's used only for primitive types
+
+        #pragma region Npy Utilities
 
 		template<typename T>
 		std::string GetNpyHeaderDescription();
@@ -52,26 +66,29 @@ namespace npypp
 		size_t ParseDescription(const std::string& npyHeader);
 
 		void ParseNpyHeader(FILE* fp, size_t& word_size, std::vector<size_t>& shape, bool& fortran_order);
-	}
 
-	// Generic API
-	/**
-	* If appending, it will increase the number of rows (i.e. the first dimension in the shape vector)
-	* for more flexibility use the Append method
-	*/
-	template<typename T>
-	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const std::string& mode = "w");
+		template<typename T>
+		MultiDimensionalArray<T> LoadFull(FILE* fp);
 
-	template<typename T>
-	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const FileOpenMode mode = FileOpenMode::Write)
-	{
-		Save(fileName, data, shape, ToString(mode));
-	}
+        #pragma endregion
 
-	template<typename T>
-	std::vector<T> Load(const std::string& fileName)
-	{
-		return LoadFull<T>(fileName).data;
+        #pragma region Npz Utilities
+
+		void ParseNpzFooter(FILE* fp, uint16_t& nrecs, size_t& global_header_size, size_t& global_header_offset);
+
+		template<typename T>
+		uint32_t GetCrcNpyFile(const std::string& npyHeader, const std::vector<T>& data);
+
+		std::string GetLocalHeader(const uint32_t crc, const uint32_t nBytes, const std::string& localNpyFileName);
+
+		void AppendGlobalHeader(std::string& out, const std::string& localHeader, const uint32_t globalHeaderOffset, const std::string& localNpyFileName);
+
+		std::string GetNpzFooter(const std::string& globalHeader, const uint32_t globalHeaderOffset, const uint32_t localHeaderSize, const uint32_t nElementsInBytes, const uint16_t nNewRecords);
+
+		template<typename T>
+		MultiDimensionalArray<T> LoadCompressedFull(FILE* fp, uint32_t compressedBytes, uint32_t uncompressedBytes);
+
+        #pragma endregion
 	}
 
     #pragma region Convenience Types
@@ -97,7 +114,7 @@ namespace npypp
 	};
 
 	template<typename T>
-	class Vector: public MultiDimensionalArray<T>
+	class Vector : public MultiDimensionalArray<T>
 	{
 	public:
 		Vector(const std::vector<T>& data())
@@ -134,6 +151,28 @@ namespace npypp
 
     #pragma endregion
 
+    #pragma region Load/Save Npy
+
+	// Generic API
+	/**
+	* If appending, it will increase the number of rows (i.e. the first dimension in the shape vector)
+	* for more flexibility use the Append method
+	*/
+	template<typename T>
+	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const std::string& mode = "w");
+
+	template<typename T>
+	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const FileOpenMode mode = FileOpenMode::Write)
+	{
+		Save(fileName, data, shape, ToString(mode));
+	}
+
+	template<typename T>
+	std::vector<T> Load(const std::string& fileName)
+	{
+		return LoadFull<T>(fileName).data;
+	}
+
 	// API with convenience types
 	template<typename T>
 	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const std::string& mode = "w")
@@ -152,6 +191,81 @@ namespace npypp
 	*/
 	template<typename T>
 	MultiDimensionalArray<T> LoadFull(const std::string& fileName);
+
+    #pragma endregion
+
+	template <typename T>
+	using CompressedMap = std::unordered_map<std::string, std::vector<T>>;
+
+	template <typename T>
+	using CompressedMapFull = std::unordered_map<std::string, MultiDimensionalArray<T>>;
+
+    #pragma region Load/Save Npz
+
+	/**
+	* Since *.npz files supports multiple arrays in a single file, the variable name needs to be specified
+	*/
+	template<typename T>
+	void SaveCompressed(const std::string& zipFileName, std::string vectorName, const std::vector<T>& data, const std::vector<size_t>& shape, const std::string& mode = "w");
+
+	/**
+	* If vector name is not provided, it's extracted by the zipfile name
+	*/
+	template<typename T>
+	void SaveCompressed(const std::string& zipFileName, const std::vector<T>& data, const std::vector<size_t>& shape, const std::string& mode = "w")
+	{
+		std::string vectorName(zipFileName);
+		vectorName.replace(vectorName.end() - 4, vectorName.end(), "");
+
+		SaveCompressed(zipFileName, vectorName, data, shape, mode);
+	}
+
+	/**
+	* Limitations: map has only one value type, so you cannot load different types in the same file
+	*/
+	template<typename T>
+	CompressedMapFull<T> LoadCompressedFull(const std::string& zipFileName);
+
+	/**
+	* Limitations: map has only one value type, so you cannot load different types in the same file
+	*/
+	template<typename T>
+	MultiDimensionalArray<T> LoadCompressedFull(const std::string& zipFileName, const std::string& vectorName)
+	{
+		CompressedMapFull<T> fullInfo = LoadCompressedFull<T>(zipFileName);
+
+		auto iter = fullInfo.find(vectorName);
+		if (iter == fullInfo.end())
+			return MultiDimensionalArray<T>();
+
+		return iter->second;
+	}
+
+	/**
+	* Limitations: map has only one value type, so you cannot load different types in the same file
+	*/
+	template<typename T>
+	CompressedMap<T> LoadCompressed(const std::string& zipFileName)
+	{
+		CompressedMapFull<T> fullInfo = LoadCompressedFull<T>(zipFileName);
+		CompressedMap<T> ret;
+
+		for (auto& iter : fullInfo)
+			ret[iter.first] = std::move(iter.second.data);
+
+		return ret;
+	}
+
+	/**
+	* Limitations: map has only one value type, so you cannot load different types in the same file
+	*/
+	template<typename T>
+	std::vector<T> LoadCompressed(const std::string& zipFileName, const std::string& vectorName)
+	{
+		return LoadCompressedFull<T>(zipFileName, vectorName).data;
+	}
+
+    #pragma endregion
 }
 
 #include <Npy++.tpp>

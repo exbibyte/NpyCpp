@@ -9,9 +9,9 @@
 #include<string>
 #include<array>
 
-constexpr size_t Nx{ 20 };
-constexpr size_t Ny{ 40 };
-constexpr size_t Nz{ 60 };
+constexpr size_t Nx{ 128 };
+constexpr size_t Ny{ 64 };
+constexpr size_t Nz{ 32 };
 constexpr size_t TotalSize{ Nx * Ny * Nz };
 const std::vector<size_t> shape{ Nz, Ny, Nx };
 
