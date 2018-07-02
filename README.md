@@ -43,3 +43,27 @@ This library has been forked from [this](https://github.com/rogersce/cnpy/) one,
     for (int i = 0; i < vec.size(); i++)
       assert(vec[i] == loadedData.data[i]);
 ```
+
+## Sample Usage with Read/Write Memory Mapping
+```c++
+    std::vector<size_t> shape = { 4, 4, 8 };
+	// need to specify the file size beforehand
+	const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+	const auto npyHeader = npypp::detail::GetNpyHeader<double>(shape);
+	const size_t fileSizeBytes = npyHeader.size() + nElements * sizeof(double);
+    
+    // open the file with read/write permissions
+	mm::MemoryMappedFile<mm::CacheHint::SequentialScan, mm::MapMode::ReadAndWrite> mmf("arr1.npy", fileSizeBytes);
+	assert(mmf.IsValid());
+	npypp::Save(mmf, data, shape);
+
+	// rewind the mapped view pointer to its original status
+	mmf.Rewind();
+
+    // load file from shared memory
+	const std::complex<double>* loadedData = nullptr;
+	npypp::Load<std::complex<double>>(loadedData, mmf);
+
+	for (int i = 0; i < TotalSize; i++)
+		assert(data[i] == loadedData[i]);
+```
