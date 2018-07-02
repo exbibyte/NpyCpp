@@ -44,7 +44,7 @@ This library has been forked from [this](https://github.com/rogersce/cnpy/) one,
       assert(vec[i] == loadedData.data[i]);
 ```
 
-## Sample Usage with Read/Write Memory Mapping
+### Sample Usage with Read/Write Memory Mapping
 ```c++
     std::vector<size_t> shape = { 4, 4, 8 };
 	// need to specify the file size beforehand
