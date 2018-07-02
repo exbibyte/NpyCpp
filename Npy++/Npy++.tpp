@@ -98,8 +98,8 @@ namespace npypp
 			return header;
 		}
 
-		template<typename mm::CacheHint ch>
-		void ParseNpyHeader(mm::MemoryMappedFile<ch>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder)
+		template<typename mm::CacheHint ch, typename mm::MapMode mpm>
+		void ParseNpyHeader(mm::MemoryMappedFile<ch, mpm>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder)
 		{
 			constexpr size_t expectedCharToRead{ 11 };
 			mmf.Advance(expectedCharToRead);
@@ -133,8 +133,8 @@ namespace npypp
 			return MultiDimensionalArray<T>(data, shape);
 		}
 
-		template<typename T, typename mm::CacheHint ch>
-		MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf)
+		template<typename T, typename mm::CacheHint ch, typename mm::MapMode mpm>
+		MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch, mpm>& mmf)
 		{
 			std::vector<T> data;
 
@@ -152,13 +152,13 @@ namespace npypp
 			return MultiDimensionalArray<T>(data, shape);
 		}
 
-
 		/**
-		* WARNING: The data pointer must be nullptr when passed in, and it must be free'd later on
+		* WARNING: The data pointer must be nullptr when passed in, as this will not delete it
 		*/
-		template<typename T, typename mm::CacheHint ch>
-		void LoadNoCopy(const T*& data, mm::MemoryMappedFile<ch>& mmf)
+		template<typename T, typename mm::CacheHint ch, typename mm::MapMode mpm>
+		void LoadNoCopy(const T*& data, mm::MemoryMappedFile<ch, mpm>& mmf)
 		{
+			assert(mpm != mm::MapMode::WriteOnly);
 			std::vector<size_t> shape;
 			size_t wordSize = 0;
 			bool fortranOrder = false;
@@ -272,6 +272,20 @@ namespace npypp
 		fclose(fp);
 	}
 
+	template<typename T, typename mm::CacheHint ch, typename mm::MapMode mpm>
+	void Save(mm::MemoryMappedFile<ch, mpm>& mmf, const std::vector<T>& data, const std::vector<size_t>& shape)
+	{
+		assert(mmf.IsValid());
+
+		const std::string header = detail::GetNpyHeader<T>(shape);
+		unsigned const char* headerBuffer = reinterpret_cast<unsigned const char*>(header.c_str());
+		mmf.ReadFrom(headerBuffer, header.size());
+
+		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		unsigned const char* dataBuffer = reinterpret_cast<unsigned const char*>(data.data());
+		mmf.ReadFrom(dataBuffer, sizeof(T) * nElements);
+	}
+
 	/**
 	* Load the full info (data and shape) from the file
 	*/
@@ -288,7 +302,7 @@ namespace npypp
 			return ret;
 		}
 
-		mm::MemoryMappedFile<mm::CacheHint::SequentialScan> mmf(fileName);
+		mm::MemoryMappedFile<mm::CacheHint::SequentialScan, mm::MapMode::ReadOnly> mmf(fileName);
 		assert(mmf.IsValid());
 		return detail::LoadFull<T, mm::CacheHint::SequentialScan>(mmf);
 	}
@@ -296,10 +310,11 @@ namespace npypp
 	/**
 	* Load the full info (data and shape) from the file using an externally set memory mapped file without copying memory
 	*/
-	template<typename T, typename mm::CacheHint ch>
-	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf)
+	template<typename T, typename mm::CacheHint ch, typename mm::MapMode mpm>
+	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch, mpm>& mmf)
 	{
-		auto ret = detail::LoadFull<T, ch>(mmf);
+		assert(mpm != mm::MapMode::WriteOnly);
+		auto ret = detail::LoadFull<T, ch, mpm>(mmf);
 		return ret;
 	}
 

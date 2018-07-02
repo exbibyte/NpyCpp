@@ -28,9 +28,12 @@
 namespace mm
 {
 	/// open file
-	template<CacheHint ch>
-	bool MemoryMappedFile<ch>::Open(const std::string& filename, size_t mappedBytes)
+	template<CacheHint ch, MapMode mpm>
+	bool MemoryMappedFile<ch, mpm>::Open(const std::string& filename, size_t mappedBytes)
 	{
+		if (mpm != MapMode::ReadOnly)
+			assert(mappedBytes != 0);  // size needs to be known when writing with mmap
+
 		// already open ?
 		if (IsValid())
 			return false;
@@ -61,7 +64,18 @@ namespace mm
 		}
 
 		// open file
-		file = ::CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, winHint, NULL);
+		switch (mpm)
+		{
+			case MapMode::ReadOnly:
+				file = ::CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, winHint, NULL);
+				break;
+			case MapMode::WriteOnly:
+			case MapMode::ReadAndWrite:
+				file = ::CreateFileA(filename.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, winHint, NULL);
+				break;
+			default:
+				break;
+		}
 		if (!file)
 			return false;
 
@@ -72,16 +86,53 @@ namespace mm
 		filesize = static_cast<uint64_t>(result.QuadPart);
 
 		// convert to mapped mode
-		mappedFile = ::CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+		switch (mpm)
+		{
+			case MapMode::ReadOnly:
+				mappedFile = ::CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+				break;
+			case MapMode::WriteOnly:
+			case MapMode::ReadAndWrite:
+				mappedFile = ::CreateFileMapping(file, NULL, PAGE_READWRITE, 0, 0, NULL);
+				break;
+			default:
+				break;
+		}
 		if (!mappedFile)
+		{
+			//Get the error message, if any.
+			DWORD errorMessageID = ::GetLastError();
+			LPSTR messageBuffer = nullptr;
+			size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+										 NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+			std::string message(messageBuffer, size);
+
+			//Free the buffer.
+			LocalFree(messageBuffer);
+
 			return false;
+		}
 
 #else
 
 		// Linux
 
 		// open file
-		file = ::open(filename.c_str(), O_RDONLY | O_LARGEFILE);
+		switch (mpm)
+		{
+			case MapMode::ReadOnly:
+				file = ::open(filename.c_str(), O_RDONLY | O_LARGEFILE);
+				break;
+			case MapMode::WriteOnly:
+				file = ::open(filename.c_str(), O_WRONLY | O_LARGEFILE);
+				break;
+			case MapMode::ReadAndWrite:
+				file = ::open(filename.c_str(), O_RDWR | O_LARGEFILE);
+				break;
+			default:
+				break;
+		}
 		if (file == -1)
 		{
 			file = 0;
@@ -107,8 +158,8 @@ namespace mm
 	}
 
 	/// close file
-	template<CacheHint ch>
-	void MemoryMappedFile<ch>::Close()
+	template<CacheHint ch, MapMode mpm>
+	void MemoryMappedFile<ch, mpm>::Close()
 	{
 		// kill pointer
 		if (mappedView)
@@ -144,8 +195,8 @@ namespace mm
 	}
 
 	/// access position, including range checking
-	template<CacheHint ch>
-	unsigned char MemoryMappedFile<ch>::at(size_t offset) const
+	template<CacheHint ch, MapMode mpm>
+	unsigned char MemoryMappedFile<ch, mpm>::at(size_t offset) const
 	{
 		// checks
 		if (!mappedView)
@@ -157,8 +208,8 @@ namespace mm
 	}
 
 	/// replace mapping by a new one of the same file, offset MUST be a multiple of the page size
-	template<CacheHint ch>
-	bool MemoryMappedFile<ch>::ReMap(uint64_t offset, size_t mappedBytes)
+	template<CacheHint ch, MapMode mpm>
+	bool MemoryMappedFile<ch, mpm>::ReMap(uint64_t offset, size_t mappedBytes)
 	{
 		if (!file)
 			return false;
@@ -191,12 +242,28 @@ namespace mm
 		mappedBytes = mappedBytes;
 
 		// get memory address
-		mappedView = ::MapViewOfFile(mappedFile, FILE_MAP_READ, offsetHigh, offsetLow, mappedBytes);
+		switch (mpm)
+		{
+			case MapMode::ReadOnly:
+				mappedView = ::MapViewOfFile(mappedFile, FILE_MAP_READ, offsetHigh, offsetLow, mappedBytes);
+				break;
+			case MapMode::WriteOnly:
+				mappedView = ::MapViewOfFile(mappedFile, FILE_MAP_WRITE, offsetHigh, offsetLow, mappedBytes);
+				break;
+			case MapMode::ReadAndWrite:
+				mappedView = ::MapViewOfFile(mappedFile, FILE_MAP_ALL_ACCESS, offsetHigh, offsetLow, mappedBytes);
+				break;
+			default:
+				break;
+		}
+
+		originMappedView = mappedView;
 
 		if (!mappedView)
 		{
 			mappedBytes = 0;
 			mappedView = nullptr;
+			originMappedView = nullptr;
 			return false;
 		}
 
@@ -206,7 +273,20 @@ namespace mm
 
 		// Linux
 		// new mapping
-		mappedView = ::mmap64(NULL, mappedBytes, PROT_READ, MAP_SHARED, _file, offset);
+		switch (mpm)
+		{
+			case MapMode::ReadOnly:
+				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ, MAP_SHARED, _file, offset);
+				break;
+			case MapMode::WriteOnly:
+				mappedView = ::mmap64(NULL, mappedBytes, PROT_WRITE, MAP_SHARED, _file, offset);
+				break;
+			case MapMode::ReadAndWrite:
+				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, offset);
+				break;
+			default:
+				break;
+		}
 		if (mappedView == MAP_FAILED)
 		{
 			mappedBytes = 0;
@@ -240,8 +320,8 @@ namespace mm
 	}
 
 	/// get OS page size (for remap)
-	template<CacheHint ch>
-	int MemoryMappedFile<ch>::GetPageSize()
+	template<CacheHint ch, MapMode mpm>
+	int MemoryMappedFile<ch, mpm>::GetPageSize()
 	{
 #ifdef _MSC_VER
 		SYSTEM_INFO sysInfo;
@@ -252,8 +332,8 @@ namespace mm
 #endif
 	}
 
-	template<CacheHint ch>
-	std::string MemoryMappedFile<ch>::ReadLine(const size_t maxCharToRead)
+	template<CacheHint ch, MapMode mpm>
+	std::string MemoryMappedFile<ch, mpm>::ReadLine(const size_t maxCharToRead)
 	{
 		auto buffer = GetData();
 
@@ -272,21 +352,29 @@ namespace mm
 		return out;
 	}
 
-	template<CacheHint ch>
+	template<CacheHint ch, MapMode mpm>
 	template<typename T>
-	void MemoryMappedFile<ch>::CopyTo(T* data, const size_t nElementsToRead)
+	void MemoryMappedFile<ch, mpm>::CopyTo(T* data, const size_t nElementsToRead)
 	{	
 		auto buffer = GetData();
 		std::memcpy(data, buffer, sizeof(T) * nElementsToRead);
 	}
 
-	template<CacheHint ch>
+	template<CacheHint ch, MapMode mpm>
 	template<typename T>
-	void MemoryMappedFile<ch>::Set(const T*& data)
+	void MemoryMappedFile<ch, mpm>::Set(const T*& data)
 	{
 		auto buffer = GetData();
 		data = reinterpret_cast<const T*>(buffer);
-		int a = 0;
+	}
+
+	template<CacheHint ch, MapMode mpm>
+	void MemoryMappedFile<ch, mpm>::ReadFrom(unsigned const char* data, const size_t nElementsToWrite)
+	{
+		unsigned char* buffer = reinterpret_cast<unsigned char*>(mappedView);
+		std::memcpy(buffer, data, nElementsToWrite);
+
+		Advance(nElementsToWrite);
 	}
 }
 

@@ -8,4 +8,11 @@ namespace mm
 		SequentialScan, ///< read file only once with few seeks
 		RandomAccess    ///< jump around
 	};
+
+	enum class MapMode
+	{
+		ReadOnly,
+		WriteOnly,
+		ReadAndWrite
+	};
 }

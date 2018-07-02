@@ -17,7 +17,7 @@
 
 namespace mm
 {
-	template<CacheHint cacheHint = CacheHint::SequentialScan>
+	template<CacheHint cacheHint = CacheHint::SequentialScan, MapMode mapMode = MapMode::ReadOnly>
 	class MemoryMappedFile
 	{
 	public:
@@ -99,6 +99,14 @@ namespace mm
 			Set(&data[0]);
 		}
 
+		void ReadFrom(unsigned const char* data, const size_t nElementsToWrite);
+
+		/// reqwind to the original mapped view pointer
+		void Rewind()
+		{
+			mappedView = originMappedView;
+		}
+
 		/// true, if file successfully opened
 		bool IsValid() const
 		{
@@ -135,6 +143,8 @@ namespace mm
 		FileHandle file = nullptr;
 		/// pointer to the file contents mapped into memory
 		void* mappedView = nullptr;
+
+		void* originMappedView = nullptr;
 	};
 }
 

@@ -60,20 +60,20 @@ namespace npypp
 
 		void ParseNpyHeader(FILE* fp, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder);
 
-		template<typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
-		void ParseNpyHeader(mm::MemoryMappedFile<ch>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder);
+		template<typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+		void ParseNpyHeader(mm::MemoryMappedFile<ch, mpm>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder);
 
 		template<typename T>
 		MultiDimensionalArray<T> LoadFull(FILE* fp);
 
-		template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
-		MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf);
+		template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+		MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch, mpm>& mmf);
 
 		/**
-		* WARNING: The data pointer must be nullptr when passed in, and it must be free'd later on
+		* WARNING: The data pointer must be nullptr when passed in, as this will not delete it
 		*/
-		template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
-		void LoadNoCopy(const T*& data, mm::MemoryMappedFile<ch>& mmf);
+		template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+		void LoadNoCopy(const T*& data, mm::MemoryMappedFile<ch, mpm>& mmf);
 
         #pragma endregion
 
@@ -166,10 +166,19 @@ namespace npypp
 	template<typename T>
 	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const std::string& mode = "w");
 
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+	void Save(mm::MemoryMappedFile<ch, mpm>& mmf, const std::vector<T>& data, const std::vector<size_t>& shape);
+
 	template<typename T>
-	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const FileOpenMode mode = FileOpenMode::Write)
+	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const FileOpenMode mode = FileOpenMode::Write, const bool useMemoryMap = false)
 	{
 		Save(fileName, data, shape, ToString(mode));
+	}
+
+	template<typename T>
+	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const FileOpenMode mode = FileOpenMode::Write, const bool useMemoryMap = false)
+	{
+		Save(fileName, array.data, array.shape, ToString(mode));
 	}
 
 	template<typename T>
@@ -178,14 +187,14 @@ namespace npypp
 		return LoadFull<T>(fileName, useMemoryMap).data;
 	}
 
-	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
-	std::vector<T> Load(mm::MemoryMappedFile<ch>& mmf)
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+	std::vector<T> Load(mm::MemoryMappedFile<ch, mpm>& mmf)
 	{
 		return LoadFull<T>(mmf).data;
 	}
 
-	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
-	void Load(const T*& data, mm::MemoryMappedFile<ch>& mmf)
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+	void Load(const T*& data, mm::MemoryMappedFile<ch, mpm>& mmf)
 	{
 		assert(data == nullptr);
 		detail::LoadNoCopy<T>(data, mmf);
@@ -213,8 +222,8 @@ namespace npypp
 	/**
 	* Load the full info (data and shape) from the file using an externally set memory mapped file
 	*/
-	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
-	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf);
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch, mpm>& mmf);
 
     #pragma endregion
 
