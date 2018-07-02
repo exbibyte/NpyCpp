@@ -14,11 +14,11 @@ This library has been forked from [this](https://github.com/rogersce/cnpy/) one,
 ## Sample Usage
 
 ``` c++
-    // Serialize
+    // Serialize (using fwrite, i.e. no memory mapping)
     std::vector<double> vec(128, 0.01);
     npypp::Save("arr1.npy", vec, { 4, 4, 8 }, "w");
 
-    // Deserialize
+    // Deserialize mapping file into memory
     const bool useMemoryMapping = true;
     auto loadedData = npypp::LoadFull<double>("arr1.npy", useMemoryMapping);
 
