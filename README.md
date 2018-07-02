@@ -8,7 +8,7 @@ This library has been forked from [this](https://github.com/rogersce/cnpy/) one,
 ## New functionalities
 - Removed support for `-rtti`:  I'm using type traits rather than `type_info`
 - Loading from an `*.npz` file doesn't support heterogenous data, but they must be of the same type
-- Introduced support for memory mapped files (only for `*.npy` files
+- Introduced support for memory mapped files (only for `*.npy` files) 
 - Implemented unit tests using the `gtest` framework
 
 ## Sample Usage
