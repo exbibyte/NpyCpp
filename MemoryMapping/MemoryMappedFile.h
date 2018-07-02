@@ -71,6 +71,7 @@ namespace mm
 			return reinterpret_cast<unsigned char*>(mappedView);
 		}
 
+		/// advance the mappedView pointer
 		inline void Advance(const size_t nBytes)
 		{
 			mappedView = reinterpret_cast<unsigned char*>(mappedView) + nBytes;
@@ -78,6 +79,7 @@ namespace mm
 
 		std::string ReadLine(const size_t maxCharToRead = 256);
 
+		/// copy current mappedView pointer up to nElementsToRead using memcpy
 		template<typename T>
 		void CopyTo(T* data, const size_t nElementsToRead);
 
@@ -85,6 +87,16 @@ namespace mm
 		inline void CopyTo(std::vector<T>& data)
 		{
 			CopyTo(data.data(), data.size());
+		}
+
+		/// reinterpret mappedView pointer into data
+		template<typename T>
+		void Set(const T*& data);
+
+		template<typename T>
+		inline void Set(std::vector<T>& data)
+		{
+			Set(&data[0]);
 		}
 
 		/// true, if file successfully opened

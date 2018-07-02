@@ -42,6 +42,18 @@ TEST_F(MmapNpyTests, ReadAndSave)
 		ASSERT_TRUE(data[i] == loadedData[i]);
 }
 
+TEST_F(MmapNpyTests, ReadAndSaveNoCopy)
+{
+	npypp::Save("arr1.npy", data, shape, "w");
+
+	mm::MemoryMappedFile<mm::CacheHint::SequentialScan> mmf("arr1.npy");
+	const std::complex<double>* loadedData = nullptr;
+	npypp::Load<std::complex<double>>(loadedData, mmf);
+
+	for (int i = 0; i < TotalSize; i++)
+		ASSERT_TRUE(data[i] == loadedData[i]);
+}
+
 TEST_F(MmapNpyTests, ReadAndSaveFull)
 {
 	npypp::Save("arr1.npy", data, shape, "w");
@@ -65,6 +77,22 @@ TEST_F(MmapNpyTests, Append)
 	auto loadedData = npypp::Load<std::complex<double>>("arr1.npy", true);
 
 	ASSERT_EQ(loadedData.size(), 2 * TotalSize);
+
+	for (int i = 0; i < TotalSize; i++)
+	{
+		ASSERT_TRUE(data[i] == loadedData[i]);
+		ASSERT_TRUE(data[i] == loadedData[i + TotalSize]);
+	}
+}
+
+TEST_F(MmapNpyTests, AppendAndReadWithNoCopy)
+{
+	npypp::Save("arr1.npy", data, shape, "w");
+	npypp::Save("arr1.npy", data, shape, "a");
+
+	mm::MemoryMappedFile<mm::CacheHint::SequentialScan> mmf("arr1.npy");
+	const std::complex<double>* loadedData = nullptr;
+	npypp::Load<std::complex<double>>(loadedData, mmf);
 
 	for (int i = 0; i < TotalSize; i++)
 	{

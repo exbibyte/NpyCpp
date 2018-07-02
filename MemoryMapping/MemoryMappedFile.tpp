@@ -279,5 +279,14 @@ namespace mm
 		auto buffer = GetData();
 		std::memcpy(data, buffer, sizeof(T) * nElementsToRead);
 	}
+
+	template<CacheHint ch>
+	template<typename T>
+	void MemoryMappedFile<ch>::Set(const T*& data)
+	{
+		auto buffer = GetData();
+		data = reinterpret_cast<const T*>(buffer);
+		int a = 0;
+	}
 }
 

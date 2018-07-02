@@ -69,6 +69,12 @@ namespace npypp
 		template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
 		MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf);
 
+		/**
+		* WARNING: The data pointer must be nullptr when passed in, and it must be free'd later on
+		*/
+		template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
+		void LoadNoCopy(const T*& data, mm::MemoryMappedFile<ch>& mmf);
+
         #pragma endregion
 
         #pragma region Npz Utilities
@@ -172,6 +178,19 @@ namespace npypp
 		return LoadFull<T>(fileName, useMemoryMap).data;
 	}
 
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
+	std::vector<T> Load(mm::MemoryMappedFile<ch>& mmf)
+	{
+		return LoadFull<T>(mmf).data;
+	}
+
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
+	void Load(const T*& data, mm::MemoryMappedFile<ch>& mmf)
+	{
+		assert(data == nullptr);
+		detail::LoadNoCopy<T>(data, mmf);
+	}
+
 	// API with convenience types
 	template<typename T>
 	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const std::string& mode = "w")
@@ -190,6 +209,12 @@ namespace npypp
 	*/
 	template<typename T>
 	MultiDimensionalArray<T> LoadFull(const std::string& fileName, const bool useMemoryMap = false);
+
+	/**
+	* Load the full info (data and shape) from the file using an externally set memory mapped file
+	*/
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan>
+	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf);
 
     #pragma endregion
 

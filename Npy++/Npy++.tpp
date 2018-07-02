@@ -152,6 +152,25 @@ namespace npypp
 			return MultiDimensionalArray<T>(data, shape);
 		}
 
+
+		/**
+		* WARNING: The data pointer must be nullptr when passed in, and it must be free'd later on
+		*/
+		template<typename T, typename mm::CacheHint ch>
+		void LoadNoCopy(const T*& data, mm::MemoryMappedFile<ch>& mmf)
+		{
+			std::vector<size_t> shape;
+			size_t wordSize = 0;
+			bool fortranOrder = false;
+			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder);
+			mmf.Advance(1);  // getting rid of the newline char
+
+			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+			data = new T[nElements];  // data is a nullptr
+
+			mmf.Set(data);  // no copy, just a reinterpret cast
+		}
+
         #pragma endregion
 
         #pragma region Npz Utilities
@@ -269,9 +288,18 @@ namespace npypp
 			return ret;
 		}
 
-		mm::MemoryMappedFile<> mmf(fileName);
+		mm::MemoryMappedFile<mm::CacheHint::SequentialScan> mmf(fileName);
 		assert(mmf.IsValid());
-		auto ret = detail::LoadFull<T, mm::CacheHint::SequentialScan>(mmf);
+		return detail::LoadFull<T, mm::CacheHint::SequentialScan>(mmf);
+	}
+
+	/**
+	* Load the full info (data and shape) from the file using an externally set memory mapped file without copying memory
+	*/
+	template<typename T, typename mm::CacheHint ch>
+	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch>& mmf)
+	{
+		auto ret = detail::LoadFull<T, ch>(mmf);
 		return ret;
 	}
 
