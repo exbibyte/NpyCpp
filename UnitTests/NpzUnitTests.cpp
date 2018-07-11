@@ -25,7 +25,7 @@ public:
 
 	void SetUp()
 	{
-		for (int i = 0; i < Nx*Ny*Nz; i++)
+		for (size_t i = 0; i < Nx*Ny*Nz; i++)
 			data[i] = std::complex<double>(rand(), rand());
 	}
 protected:
@@ -38,7 +38,7 @@ TEST_F(NpzTests, ReadAndSave)
 
 	auto loadedData = npypp::LoadCompressed<std::complex<double>>("arr1.npz", "arr1");
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 		ASSERT_TRUE(data[i] == loadedData[i]);
 }
 
@@ -53,7 +53,7 @@ TEST_F(NpzTests, ReadAndSaveFull)
 	ASSERT_EQ(loadedData.shape[2], Nx);
 	ASSERT_EQ(loadedData.data.size(), TotalSize);
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 		ASSERT_TRUE(data[i] == loadedData.data[i]);
 }
 
@@ -70,7 +70,7 @@ TEST_F(NpzTests, Append)
 	ASSERT_EQ(loadedData1.size(), TotalSize);
 	ASSERT_EQ(loadedData2.size(), TotalSize);
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 	{
 		ASSERT_TRUE(data[i] == loadedData1[i]);
 		ASSERT_TRUE(data[i] == loadedData2[i]);
@@ -99,7 +99,7 @@ TEST_F(NpzTests, AppendFull)
 	ASSERT_EQ(loadedData2.shape[2], Nx);
 	ASSERT_EQ(loadedData2.data.size(), TotalSize);
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 	{
 		ASSERT_TRUE(data[i] == loadedData1.data[i]);
 		ASSERT_TRUE(data[i] == loadedData2.data[i]);

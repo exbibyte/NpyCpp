@@ -25,7 +25,7 @@ public:
 
 	void SetUp()
 	{
-		for (int i = 0; i < Nx*Ny*Nz; i++)
+		for (size_t i = 0; i < Nx*Ny*Nz; i++)
 			data[i] = std::complex<double>(rand(), rand());
 	}
 protected:
@@ -45,7 +45,7 @@ TEST_F(cnpyTests, ReadAndSave)
 	ASSERT_TRUE(arr.word_size == sizeof(std::complex<double>));
 	ASSERT_TRUE(arr.shape.size() == 3 && arr.shape[0] == Nz && arr.shape[1] == Ny && arr.shape[2] == Nx);
 
-	for (int i = 0; i < Nx*Ny*Nz; i++)
+	for (size_t i = 0; i < Nx*Ny*Nz; i++)
 		ASSERT_TRUE(data[i] == loaded_data[i]);
 }
 

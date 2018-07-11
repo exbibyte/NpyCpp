@@ -1,6 +1,8 @@
 #pragma once
 
 #include <complex>
+#include <numeric>
+
 #include <StringUtilities.h>
 #include <zlib.h>
 
@@ -21,7 +23,7 @@ namespace npypp
 		struct Traits<TYPE>\
 		{\
 			static constexpr char id{ CHAR };\
-		};
+		}
 
 		MAKE_TYPE_TRAITS(float, 'f');
 		MAKE_TYPE_TRAITS(double, 'f');
@@ -196,15 +198,15 @@ namespace npypp
 			stream.opaque = Z_NULL;
 			stream.avail_in = 0;
 			stream.next_in = Z_NULL;
-			int err = inflateInit2(&stream, -MAX_WBITS);
+			inflateInit2(&stream, -MAX_WBITS);
 
 			stream.avail_in = compressedBytes;
 			stream.next_in = &bufferCompressed[0];
 			stream.avail_out = uncompressedBytes;
 			stream.next_out = &bufferUncompressed[0];
 
-			err = inflate(&stream, Z_FINISH);
-			err = inflateEnd(&stream);
+			inflate(&stream, Z_FINISH);
+			inflateEnd(&stream);
 
 			std::vector<size_t> shape;
 			size_t wordSize = 0;
@@ -372,16 +374,6 @@ namespace npypp
 		detail::AppendGlobalHeader(globalHeader, localHeader, globalHeaderOffset, vectorName);
 		std::string footer = detail::GetNpzFooter(globalHeader, globalHeaderOffset, localHeader.size(), totalNpyFileBytes, nRecords + 1);
 
-		std::cout << "*** LOCAL HEADER *** " << std::endl;
-		std::cout << localHeader << std::endl;
-		std::cout << "******************** " << std::endl;
-
-		std::cout << "*** GLOBAL HEADER *** " << std::endl;
-		std::cout << globalHeader << std::endl;
-		std::cout << "******************** " << std::endl;
-		std::cout << "*** FOOTER *** " << std::endl;
-		std::cout << footer << std::endl;
-		std::cout << "******************** " << std::endl;
 		// write
 		size_t elementsWritten;
 		elementsWritten = fwrite(&localHeader[0], sizeof(char), localHeader.size(), fp);

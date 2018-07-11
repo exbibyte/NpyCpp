@@ -25,7 +25,7 @@ public:
 
 	void SetUp()
 	{
-		for (int i = 0; i < Nx*Ny*Nz; i++) 
+		for (size_t i = 0; i < Nx*Ny*Nz; i++) 
 			data[i] = std::complex<double>(rand(), rand());
 	}
 protected:
@@ -38,7 +38,7 @@ TEST_F(NpyTests, ReadAndSave)
 
 	auto loadedData = npypp::Load<std::complex<double>>("arr1.npy");
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 		ASSERT_TRUE(data[i] == loadedData[i]);
 }
 
@@ -53,7 +53,7 @@ TEST_F(NpyTests, ReadAndSaveFull)
 	ASSERT_EQ(loadedData.shape[2], Nx);
 	ASSERT_EQ(loadedData.data.size(), TotalSize);
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 		ASSERT_TRUE(data[i] == loadedData.data[i]);
 }
 
@@ -66,7 +66,7 @@ TEST_F(NpyTests, Append)
 
 	ASSERT_EQ(loadedData.size(), 2 * TotalSize);
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 	{
 		ASSERT_TRUE(data[i] == loadedData[i]);
 		ASSERT_TRUE(data[i] == loadedData[i + TotalSize]);
@@ -85,7 +85,7 @@ TEST_F(NpyTests, AppendFull)
 	ASSERT_EQ(loadedData.shape[2], Nx);
 	ASSERT_EQ(loadedData.data.size(), 2 * TotalSize);
 
-	for (int i = 0; i < TotalSize; i++)
+	for (size_t i = 0; i < TotalSize; i++)
 	{
 		ASSERT_TRUE(data[i] == loadedData.data[i]);
 		ASSERT_TRUE(data[i] == loadedData.data[i + TotalSize]);

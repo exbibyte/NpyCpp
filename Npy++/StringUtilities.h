@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sstream>
+#include <iterator>
 
 namespace strutils
 {

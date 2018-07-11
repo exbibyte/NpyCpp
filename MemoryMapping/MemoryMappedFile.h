@@ -140,7 +140,7 @@ namespace mm
 #endif
 
 		/// file handle
-		FileHandle file = nullptr;
+		FileHandle file = 0;
 		/// pointer to the file contents mapped into memory
 		void* mappedView = nullptr;
 

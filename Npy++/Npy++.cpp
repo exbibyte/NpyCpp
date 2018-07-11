@@ -1,5 +1,7 @@
 #include <Npy++.h>
 
+#include <iostream>
+
 namespace npypp
 {
 	namespace detail

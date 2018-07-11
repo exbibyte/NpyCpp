@@ -5,24 +5,28 @@
 
 // OS-specific
 #ifdef _MSC_VER
-// Windows
-#include <windows.h>
+    // Windows
+    #include <windows.h>
 #else
-// Linux
-// enable large file support on 32 bit systems
-#ifndef _LARGEFILE64_SOURCE
-#define _LARGEFILE64_SOURCE
-#endif
-#ifdef  _FILE_OFFSET_BITS
-#undef  _FILE_OFFSET_BITS
-#endif
-#define _FILE_OFFSET_BITS 64
-// and include needed headers
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
+    // Linux
+    // enable large file support on 32 bit systems
+    #ifndef _LARGEFILE64_SOURCE
+        #define _LARGEFILE64_SOURCE
+    #endif
+
+    #ifdef  _FILE_OFFSET_BITS
+        #undef  _FILE_OFFSET_BITS
+    #endif
+
+    #define _FILE_OFFSET_BITS 64
+    
+    #include <sys/stat.h>
+    #include <sys/mman.h>
+    #include <fcntl.h>
+    #include <errno.h>
+    #include <unistd.h>
+    #include <cstring>  // memcpy
+    #include <cassert> // assert
 #endif
 
 namespace mm
@@ -38,7 +42,7 @@ namespace mm
 		if (IsValid())
 			return false;
 
-		file = nullptr;
+		file = 0;
 		filesize = 0;
 
 #ifdef _MSC_VER
@@ -125,8 +129,6 @@ namespace mm
 				file = ::open(filename.c_str(), O_RDONLY | O_LARGEFILE);
 				break;
 			case MapMode::WriteOnly:
-				file = ::open(filename.c_str(), O_WRONLY | O_LARGEFILE);
-				break;
 			case MapMode::ReadAndWrite:
 				file = ::open(filename.c_str(), O_RDWR | O_LARGEFILE);
 				break;
@@ -144,7 +146,7 @@ namespace mm
 		if (fstat64(file, &statInfo) < 0)
 			return false;
 
-		_filesize = statInfo.st_size;
+		filesize = statInfo.st_size;
 #endif
 
 		// initial mapping
@@ -167,7 +169,7 @@ namespace mm
 #ifdef _MSC_VER
 			::UnmapViewOfFile(mappedView);
 #else
-			::munmap(_mappedView, _filesize);
+			::munmap(mappedView, filesize);
 #endif
 			mappedView = nullptr;
 		}
@@ -186,9 +188,9 @@ namespace mm
 #ifdef _MSC_VER
 			::CloseHandle(file);
 #else
-			::close(_file);
+			::close(file);
 #endif
-			file = nullptr;
+			file = 0;
 		}
 
 		filesize = 0;
@@ -223,7 +225,7 @@ namespace mm
 #ifdef _MSC_VER
 			::UnmapViewOfFile(mappedView);
 #else
-			::munmap(_mappedView, _mappedBytes);
+			::munmap(mappedView, mappedBytes);
 #endif
 			mappedView = nullptr;
 		}
@@ -276,44 +278,47 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ, MAP_SHARED, _file, offset);
+				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ, MAP_SHARED, file, offset);
 				break;
 			case MapMode::WriteOnly:
-				mappedView = ::mmap64(NULL, mappedBytes, PROT_WRITE, MAP_SHARED, _file, offset);
+				mappedView = ::mmap64(NULL, mappedBytes, PROT_WRITE, MAP_SHARED, file, offset);
 				break;
 			case MapMode::ReadAndWrite:
-				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, offset);
+				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, file, offset);
 				break;
 			default:
 				break;
 		}
+
+		originMappedView = mappedView;
+
 		if (mappedView == MAP_FAILED)
 		{
+			perror("mmap"); exit(EXIT_FAILURE);
 			mappedBytes = 0;
 			mappedView = nullptr;
+			originMappedView = nullptr;
 			return false;
 		}
 
-		this->mappedBytes = mappedBytes;
-
 		// tweak performance
 		int linuxHint = 0;
-		switch (_hint)
+		switch (ch)
 		{
-			case Normal:
+			case CacheHint::Normal:
 				linuxHint = MADV_NORMAL;
 				break;
-			case SequentialScan:
+			case CacheHint::SequentialScan:
 				linuxHint = MADV_SEQUENTIAL;
 				break;
-			case RandomAccess:
+			case CacheHint::RandomAccess:
 				linuxHint = MADV_RANDOM;
 				break;
 			default:
 				break;
 		}
 
-		::madvise(_mappedView, _mappedBytes, linuxHint);
+		::madvise(mappedView, mappedBytes, linuxHint);
 
 		return true;
 #endif

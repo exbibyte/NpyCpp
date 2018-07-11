@@ -219,17 +219,6 @@ namespace cnpy {
         footer += (uint32_t) (global_header_offset + nbytes + local_header.size()); //offset of start of global headers, since global header now starts after newly written array
         footer += (uint16_t) 0; //zip file comment length
 
-		std::cout << "*** lOCAL HEADER *** " << std::endl;
-		std::cout << std::string(local_header.begin(), local_header.end()) << std::endl;
-		std::cout << "******************** " << std::endl;
-
-		std::cout << "*** gLOBAL HEADER *** " << std::endl;
-		std::cout << std::string(global_header.begin(), global_header.end()) << std::endl;
-		std::cout << "******************** " << std::endl;
-		std::cout << "*** fOOTER *** " << std::endl;
-		std::cout << std::string(footer.begin(), footer.end()) << std::endl;
-		std::cout << "******************** " << std::endl;
-
         //write everything
         fwrite(&local_header[0],sizeof(char),local_header.size(),fp);
         fwrite(&npy_header[0],sizeof(char),npy_header.size(),fp);

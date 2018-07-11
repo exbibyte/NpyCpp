@@ -123,11 +123,11 @@ namespace npypp
 	{
 	public:
 		Vector(const std::vector<T>& data())
-			: MultiDimensionalArray(data, { data.size() })
+			: MultiDimensionalArray<T>(data, { data.size() })
 		{
 		}
 
-		using MultiDimensionalArray::MultiDimensionalArray;
+		using MultiDimensionalArray<T>::MultiDimensionalArray;
 	};
 
 	template<typename T>
@@ -135,11 +135,11 @@ namespace npypp
 	{
 	public:
 		Matrix(const std::vector<T>& data(), const unsigned nRows, const unsigned nCols)
-			: MultiDimensionalArray(data, { nCols, nRows })
+			: MultiDimensionalArray<T>(data, { nCols, nRows })
 		{
 		}
 
-		using MultiDimensionalArray::MultiDimensionalArray;
+		using MultiDimensionalArray<T>::MultiDimensionalArray;
 	};
 
 	template<typename T>
@@ -147,11 +147,11 @@ namespace npypp
 	{
 	public:
 		Tensor(const std::vector<T>& data(), const unsigned nRows, const unsigned nCols, const unsigned nCubes)
-			: MultiDimensionalArray(data, { nCubes, nCols, nRows })
+			: MultiDimensionalArray<T>(data, { nCubes, nCols, nRows })
 		{
 		}
 
-		using MultiDimensionalArray::MultiDimensionalArray;
+		using MultiDimensionalArray<T>::MultiDimensionalArray;
 	};
 
     #pragma endregion
@@ -180,6 +180,18 @@ namespace npypp
 	{
 		Save(fileName, array.data, array.shape, ToString(mode));
 	}
+
+	/**
+	* Load the full info (data and shape) from the file
+	*/
+	template<typename T>
+	MultiDimensionalArray<T> LoadFull(const std::string& fileName, const bool useMemoryMap = false);
+
+	/**
+	* Load the full info (data and shape) from the file using an externally set memory mapped file
+	*/
+	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
+	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch, mpm>& mmf);
 
 	template<typename T>
 	std::vector<T> Load(const std::string& fileName, const bool useMemoryMap = false)
@@ -212,18 +224,6 @@ namespace npypp
 	{
 		Save(fileName, array.data, array.shape, mode);
 	}
-
-	/**
-	* Load the full info (data and shape) from the file
-	*/
-	template<typename T>
-	MultiDimensionalArray<T> LoadFull(const std::string& fileName, const bool useMemoryMap = false);
-
-	/**
-	* Load the full info (data and shape) from the file using an externally set memory mapped file
-	*/
-	template<typename T, typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
-	MultiDimensionalArray<T> LoadFull(mm::MemoryMappedFile<ch, mpm>& mmf);
 
     #pragma endregion
 
