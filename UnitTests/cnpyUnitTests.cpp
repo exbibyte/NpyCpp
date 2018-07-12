@@ -12,7 +12,6 @@
 constexpr size_t Nx{ 128 };
 constexpr size_t Ny{ 64 };
 constexpr size_t Nz{ 32 };
-constexpr size_t TotalSize{ Nx * Ny * Nz };
 const std::vector<size_t> shape{ Nz, Ny, Nx };
 
 class cnpyTests : public ::testing::Test

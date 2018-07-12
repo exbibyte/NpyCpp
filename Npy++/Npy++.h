@@ -107,6 +107,11 @@ namespace npypp
 		{
 		}
 
+		MultiDimensionalArray(const std::vector<T>& data, std::vector<size_t>&& shape)
+			: data(data), shape(shape)
+		{
+		}
+
 		MultiDimensionalArray() = default;
 		~MultiDimensionalArray() = default;
 		MultiDimensionalArray(const MultiDimensionalArray&) = default;
@@ -122,7 +127,7 @@ namespace npypp
 	class Vector : public MultiDimensionalArray<T>
 	{
 	public:
-		Vector(const std::vector<T>& data())
+		Vector(const std::vector<T>& data)
 			: MultiDimensionalArray<T>(data, { data.size() })
 		{
 		}
@@ -170,13 +175,13 @@ namespace npypp
 	void Save(mm::MemoryMappedFile<ch, mpm>& mmf, const std::vector<T>& data, const std::vector<size_t>& shape);
 
 	template<typename T>
-	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const FileOpenMode mode = FileOpenMode::Write, const bool useMemoryMap = false)
+	void Save(const std::string& fileName, const std::vector<T>& data, const std::vector<size_t>& shape, const FileOpenMode mode = FileOpenMode::Write)
 	{
 		Save(fileName, data, shape, ToString(mode));
 	}
 
 	template<typename T>
-	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const FileOpenMode mode = FileOpenMode::Write, const bool useMemoryMap = false)
+	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const FileOpenMode mode = FileOpenMode::Write)
 	{
 		Save(fileName, array.data, array.shape, ToString(mode));
 	}
@@ -215,12 +220,6 @@ namespace npypp
 	// API with convenience types
 	template<typename T>
 	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const std::string& mode = "w")
-	{
-		Save(fileName, array.data, array.shape, mode);
-	}
-
-	template<typename T>
-	void Save(const std::string& fileName, const MultiDimensionalArray<T>& array, const FileOpenMode mode = FileOpenMode::Write)
 	{
 		Save(fileName, array.data, array.shape, mode);
 	}
