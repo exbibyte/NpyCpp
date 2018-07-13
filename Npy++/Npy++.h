@@ -9,7 +9,11 @@
 #include <MemoryMapEnumerators.h>
 #include <Enumerators.h>
 
-#define UNUSED __attribute__((unused))
+#ifndef _MSC_VER
+    #define UNUSED __attribute__((unused))
+#else
+    #define UNUSED
+#endif
 
 namespace npypp
 {

@@ -25,7 +25,11 @@
     #define fopen(FILE_POINTER, FILE_NAME, MODE) FILE_POINTER = fopen(FILE_NAME, MODE)
 #endif
 
-#define UNUSED __attribute__((unused))
+#ifndef _MSC_VER
+    #define UNUSED __attribute__((unused))
+#else
+    #define UNUSED
+#endif
 
 namespace cnpy {
 
