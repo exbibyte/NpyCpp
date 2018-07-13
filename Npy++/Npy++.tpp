@@ -129,7 +129,7 @@ namespace npypp
 			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
 			data.resize(nElements);
 
-			const size_t charactersRead = fread(data.data(), sizeof(T), nElements, fp);
+			const size_t UNUSED charactersRead = fread(data.data(), sizeof(T), nElements, fp);
 			assert(charactersRead == nElements);
 
 			return MultiDimensionalArray<T>(data, shape);
@@ -146,7 +146,7 @@ namespace npypp
 			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder);
 			mmf.Advance(1);  // getting rid of the newline char
 
-			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+			const size_t UNUSED nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
 			data.resize(nElements);
 
 			mmf.CopyTo(data);
@@ -189,7 +189,7 @@ namespace npypp
 		{
 			std::vector<unsigned char> bufferCompressed(compressedBytes);
 			std::vector<unsigned char> bufferUncompressed(compressedBytes);
-			size_t elementsRead = fread(&bufferCompressed[0], 1, compressedBytes, fp);
+			size_t UNUSED elementsRead = fread(&bufferCompressed[0], 1, compressedBytes, fp);
 			assert(elementsRead == compressedBytes);
 
 			z_stream stream;
@@ -269,7 +269,7 @@ namespace npypp
 		fwrite(&header[0], sizeof(char), header.size(), fp);
 		fseek(fp, 0, SEEK_END);
 
-		const size_t charactersWritten = fwrite(&data[0], sizeof(T), nElements, fp);
+		const size_t UNUSED charactersWritten = fwrite(&data[0], sizeof(T), nElements, fp);
 		assert(charactersWritten == nElements);
 		fclose(fp);
 	}
@@ -350,7 +350,7 @@ namespace npypp
 			fseek(fp, globalHeaderOffset, SEEK_SET);
 			
 			//read and store the global header.
-			const size_t elementsRead = fread(&globalHeader[0], sizeof(char), globalHeaderSize, fp);
+			const size_t UNUSED elementsRead = fread(&globalHeader[0], sizeof(char), globalHeaderSize, fp);
 			assert(elementsRead == globalHeaderSize);
 
 			// below, we will write the the new data at the start of the global header then append the global header and footer below it
@@ -375,7 +375,7 @@ namespace npypp
 		std::string footer = detail::GetNpzFooter(globalHeader, globalHeaderOffset, localHeader.size(), totalNpyFileBytes, nRecords + 1);
 
 		// write
-		size_t elementsWritten;
+		size_t UNUSED elementsWritten;
 		elementsWritten = fwrite(&localHeader[0], sizeof(char), localHeader.size(), fp);
 		assert(elementsWritten == localHeader.size());
 
@@ -407,7 +407,7 @@ namespace npypp
 		{
 			constexpr size_t localHeaderSize{ 30 };
 			std::string localHeader(localHeaderSize, ' ');
-			size_t elementsRead = fread(&localHeader[0], sizeof(char), localHeaderSize, fp);
+			size_t UNUSED elementsRead = fread(&localHeader[0], sizeof(char), localHeaderSize, fp);
 			assert(elementsRead == localHeaderSize);
 
 			//if we've reached the global header, stop reading

@@ -25,6 +25,8 @@
     #define fopen(FILE_POINTER, FILE_NAME, MODE) FILE_POINTER = fopen(FILE_NAME, MODE)
 #endif
 
+#define UNUSED __attribute__((unused))
+
 namespace cnpy {
 
     struct NpyArray {

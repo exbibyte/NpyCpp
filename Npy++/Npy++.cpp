@@ -51,17 +51,6 @@ namespace npypp
 			return properties;
 		}
 
-		std::string GetMagic()
-		{
-			std::string magic = "";
-			magic += 0x93;  // casting to char gives error with ICC, but std::string::operator+= overloads downcast int to char anyway
-			magic += "NUMPY";
-			magic += static_cast<char>(0x01); //major version of numpy format
-			magic += static_cast<char>(0x00); //minor version of numpy format
-
-			return magic;
-		}
-
 		bool ParseFortranOrder(const std::string& npyHeader)
 		{
 			auto position = npyHeader.find("fortran_order");
@@ -98,7 +87,7 @@ namespace npypp
 			position += 9;
 			//byte order code | stands for not applicable. 
 			//not sure when this applies except for byte array
-			const bool littleEndian = npyHeader[position] == '<' || npyHeader[position] == '|';
+			const bool UNUSED littleEndian = npyHeader[position] == '<' || npyHeader[position] == '|';
 			assert(littleEndian);
 
 			std::string wordSizeString = npyHeader.substr(position + 2);
@@ -111,7 +100,7 @@ namespace npypp
 		{
 			constexpr size_t expectedCharToRead{ 11 };
 			char buffer[256];
-			const size_t charactersRead = fread(buffer, sizeof(char), expectedCharToRead, fp);
+			const size_t UNUSED charactersRead = fread(buffer, sizeof(char), expectedCharToRead, fp);
 			assert(charactersRead == expectedCharToRead);
 
 			std::string header = fgets(buffer, 256, fp);
@@ -133,7 +122,7 @@ namespace npypp
 			fseek(fp, -footerLength, SEEK_END);
 
 			std::string footer(footerLength, ' ');
-			size_t elementsRead = fread(&footer[0], sizeof(char), footerLength, fp);
+			size_t UNUSED elementsRead = fread(&footer[0], sizeof(char), footerLength, fp);
 			assert(elementsRead == footerLength);
 
 			nRecords = *reinterpret_cast<uint16_t*>(&footer[10]);

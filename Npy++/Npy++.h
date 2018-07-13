@@ -5,14 +5,11 @@
 #include <cassert>
 #include <unordered_map>
 
-#define USE_MEMORY_MAP
-
-#ifdef USE_MEMORY_MAP
 #include <MemoryMappedFile.h>
 #include <MemoryMapEnumerators.h>
-#endif
-
 #include <Enumerators.h>
+
+#define UNUSED __attribute__((unused))
 
 namespace npypp
 {
@@ -44,7 +41,10 @@ namespace npypp
 
 		std::string SetNpyHeaderPadding(std::string& properties);
 
-		std::string GetMagic();
+		constexpr const char* GetMagic()
+		{
+		    return "\x93NUMPY\x01\x00";
+		}
 
 		template<typename T>
 		std::string GetNpyHeader(const std::vector<size_t>& shape);
