@@ -26,7 +26,7 @@ This library has been forked from [this](https://github.com/rogersce/cnpy/) one,
     assert(loadedData.shape[0] == 4);
     assert(loadedData.shape[1] == 4);
     assert(loadedData.shape[2] == 8);
-    assert(loadedData.data.size(), TotalSize);
+    assert(loadedData.data.size() == TotalSize);
 
     for (int i = 0; i < vec.size(); i++)
       assert(vec[i] == loadedData.data[i]);
@@ -38,7 +38,7 @@ This library has been forked from [this](https://github.com/rogersce/cnpy/) one,
     assert(loadedData.shape[0] == 4);
     assert(loadedData.shape[1] == 4);
     assert(loadedData.shape[2] == 8);
-    assert(loadedData.data.size(), TotalSize);
+    assert(loadedData.data.size() == TotalSize);
 
     for (int i = 0; i < vec.size(); i++)
       assert(vec[i] == loadedData.data[i]);
