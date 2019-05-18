@@ -9,3 +9,12 @@ JetBrains.dotMemoryUnit.3.0.20171219.105559
 *.pyc
 *.npy
 *.npz
+cmake-build-*
+CMakeCache.txt
+CMakeFiles/
+*.cbp
+Makefile
+cmake_install.cmake
+*.a
+*.swp
+CTestTestfile.cmake
