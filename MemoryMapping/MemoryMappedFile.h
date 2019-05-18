@@ -29,8 +29,9 @@ namespace mm
 
 		/// open file, mappedBytes = 0 maps the whole file
 		MemoryMappedFile(const std::string& filename, size_t mappedBytes = 0)
+		    : _filename(filename), _mappedBytes(mappedBytes)
 		{
-			Open(filename, mappedBytes);
+			Open();
 		}
 
 		/// close file (see close() )
@@ -40,7 +41,7 @@ namespace mm
 		}
 
 		/// mappedBytes = 0 maps the whole file
-		bool Open(const std::string& filename, size_t mappedBytes = 0);
+		bool Open();
 
 		void Close();
 
@@ -56,25 +57,25 @@ namespace mm
 		/// get file size
 		uint64_t size() const
 		{
-			return filesize;
+			return _fileSize;
 		}
 
 		/// get number of actually mapped bytes
 		size_t MappedSize() const
 		{
-			return mappedBytes;
+			return _mappedBytes;
 		}
 
 		/// raw access
 		inline const unsigned char* GetData() const
 		{
-			return reinterpret_cast<unsigned char*>(mappedView);
+			return reinterpret_cast<unsigned char*>(_mappedView);
 		}
 
 		/// advance the mappedView pointer
 		inline void Advance(const size_t nBytes)
 		{
-			mappedView = reinterpret_cast<unsigned char*>(mappedView) + nBytes;
+			_mappedView = reinterpret_cast<unsigned char*>(_mappedView) + nBytes;
 		}
 
 		std::string ReadLine(const size_t maxCharToRead = 256);
@@ -104,13 +105,13 @@ namespace mm
 		/// reqwind to the original mapped view pointer
 		void Rewind()
 		{
-			mappedView = originMappedView;
+			_mappedView = _originMappedView;
 		}
 
 		/// true, if file successfully opened
 		bool IsValid() const
 		{
-			return mappedView != nullptr;
+			return _mappedView != nullptr;
 		}
 
 		/// replace mapping by a new one of the same file, offset MUST be a multiple of the page size
@@ -122,29 +123,29 @@ namespace mm
 		static int GetPageSize();
 
 		/// file name
-		std::string filename;
+		std::string _filename;
 		
 		/// file size
-		uint64_t filesize = 0;
+		uint64_t _fileSize = 0;
 
 		/// mapped size
-		size_t mappedBytes = 0;
+		size_t _mappedBytes = 0;
 
 		/// define handle
 #ifdef _MSC_VER
 		typedef void* FileHandle;
 		/// Windows handle to memory mapping of _file
-		void* mappedFile = nullptr;
+		void* _mappedFile = nullptr;
 #else
 		typedef int FileHandle;
 #endif
 
 		/// file handle
-		FileHandle file = 0;
+		FileHandle _file = 0;
 		/// pointer to the file contents mapped into memory
-		void* mappedView = nullptr;
+		void* _mappedView = nullptr;
 
-		void* originMappedView = nullptr;
+		void* _originMappedView = nullptr;
 	};
 }
 

@@ -33,22 +33,22 @@ namespace mm
 {
 	/// open file
 	template<CacheHint ch, MapMode mpm>
-	bool MemoryMappedFile<ch, mpm>::Open(const std::string& filename, size_t mappedBytes)
+	bool MemoryMappedFile<ch, mpm>::Open()
 	{
 		if (mpm != MapMode::ReadOnly)
-			assert(mappedBytes != 0);  // size needs to be known when writing with mmap
+			assert(_mappedBytes != 0);  // size needs to be known when writing with mmap
 
 		// already open ?
 		if (IsValid())
 			return false;
 
-		file = 0;
-		filesize = 0;
+		_file = 0;
+		_fileSize = 0;
 
 #ifdef _MSC_VER
-		mappedFile = nullptr;
+		_mappedFile = nullptr;
 #endif
-		mappedView = nullptr;
+		_mappedView = nullptr;
 
 #ifdef _MSC_VER
 		DWORD winHint = 0;
@@ -71,38 +71,38 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				file = ::CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, winHint, NULL);
+				_file = ::CreateFileA(_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, winHint, NULL);
 				break;
 			case MapMode::WriteOnly:
 			case MapMode::ReadAndWrite:
-				file = ::CreateFileA(filename.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, winHint, NULL);
+				_file = ::CreateFileA(_filename.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, winHint, NULL);
 				break;
 			default:
 				break;
 		}
-		if (!file)
+		if (!_file)
 			return false;
 
 		// file size
 		LARGE_INTEGER result;
-		if (!GetFileSizeEx(file, &result))
+		if (!GetFileSizeEx(_file, &result))
 			return false;
-		filesize = static_cast<uint64_t>(result.QuadPart);
+		_fileSize = static_cast<uint64_t>(result.QuadPart);
 
 		// convert to mapped mode
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				mappedFile = ::CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+				_mappedFile = ::CreateFileMapping(_file, NULL, PAGE_READONLY, 0, 0, NULL);
 				break;
 			case MapMode::WriteOnly:
 			case MapMode::ReadAndWrite:
-				mappedFile = ::CreateFileMapping(file, NULL, PAGE_READWRITE, 0, 0, NULL);
+				_mappedFile = ::CreateFileMapping(_file, NULL, PAGE_READWRITE, 0, 0, NULL);
 				break;
 			default:
 				break;
 		}
-		if (!mappedFile)
+		if (!_mappedFile)
 		{
 			//Get the error message, if any.
 			DWORD errorMessageID = ::GetLastError();
@@ -126,37 +126,33 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				file = ::open(filename.c_str(), O_RDONLY | O_LARGEFILE);
+				_file = ::open(_filename.c_str(), O_RDONLY | O_LARGEFILE);
 				break;
 			case MapMode::WriteOnly:
 			case MapMode::ReadAndWrite:
-				file = ::open(filename.c_str(), O_RDWR | O_LARGEFILE);
+				_file = ::open(_filename.c_str(), O_RDWR | O_LARGEFILE);
 				break;
 			default:
 				break;
 		}
-		if (file == -1)
+		if (_file == -1)
 		{
-			file = 0;
+			_file = 0;
 			return false;
 		}
 
 		// file size
-		struct stat64 statInfo;
-		if (fstat64(file, &statInfo) < 0)
+		struct stat64 statInfo{};
+		if (fstat64(_file, &statInfo) < 0)
 			return false;
 
-		filesize = statInfo.st_size;
+		_fileSize = statInfo.st_size;
 #endif
 
 		// initial mapping
-		ReMap(0, mappedBytes);
+		ReMap(0, _mappedBytes);
 
-		if (!mappedView)
-			return false;
-
-		// everything's fine
-		return true;
+		return _mappedView != nullptr;
 	}
 
 	/// close file
@@ -164,14 +160,14 @@ namespace mm
 	void MemoryMappedFile<ch, mpm>::Close()
 	{
 		// kill pointer
-		if (mappedView)
+		if (_mappedView)
 		{
 #ifdef _MSC_VER
-			::UnmapViewOfFile(mappedView);
+			::UnmapViewOfFile(_mappedView);
 #else
-			::munmap(mappedView, filesize);
+			::munmap(_mappedView, _fileSize);
 #endif
-			mappedView = nullptr;
+			_mappedView = nullptr;
 		}
 
 #ifdef _MSC_VER
@@ -183,17 +179,17 @@ namespace mm
 #endif
 
 		// close underlying file
-		if (file)
+		if (_file)
 		{
 #ifdef _MSC_VER
 			::CloseHandle(file);
 #else
-			::close(file);
+			::close(_file);
 #endif
-			file = 0;
+			_file = 0;
 		}
 
-		filesize = 0;
+		_fileSize = 0;
 	}
 
 	/// access position, including range checking
@@ -201,9 +197,9 @@ namespace mm
 	unsigned char MemoryMappedFile<ch, mpm>::at(size_t offset) const
 	{
 		// checks
-		if (!mappedView)
+		if (!_mappedView)
 			throw std::invalid_argument("No view mapped");
-		if (offset >= filesize)
+		if (offset >= _fileSize)
 			throw std::out_of_range("View is not large enough");
 
 		return operator[](offset);
@@ -213,59 +209,59 @@ namespace mm
 	template<CacheHint ch, MapMode mpm>
 	bool MemoryMappedFile<ch, mpm>::ReMap(uint64_t offset, size_t mappedBytes)
 	{
-		if (!file)
+		if (!_file)
 			return false;
 
 		if (mappedBytes == 0)
-			mappedBytes = filesize;
+			mappedBytes = _fileSize;
 
 		// close old mapping
-		if (mappedView)
+		if (_mappedView)
 		{
 #ifdef _MSC_VER
 			::UnmapViewOfFile(mappedView);
 #else
-			::munmap(mappedView, mappedBytes);
+			::munmap(_mappedView, mappedBytes);
 #endif
-			mappedView = nullptr;
+			_mappedView = nullptr;
 		}
 
 		// don't go further than end of file
-		if (offset > filesize)
+		if (offset > _fileSize)
 			return false;
-		if (offset + mappedBytes > filesize)
-			mappedBytes = size_t(filesize - offset);
+		if (offset + mappedBytes > _fileSize)
+			mappedBytes = size_t(_fileSize - offset);
 
 #ifdef _MSC_VER
 		// Windows
 
 		DWORD offsetLow = DWORD(offset & 0xFFFFFFFF);
 		DWORD offsetHigh = DWORD(offset >> 32);
-		mappedBytes = mappedBytes;
+		_mappedBytes = _mappedBytes;
 
 		// get memory address
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				mappedView = ::MapViewOfFile(mappedFile, FILE_MAP_READ, offsetHigh, offsetLow, mappedBytes);
+				_mappedView = ::MapViewOfFile(_mappedFile, FILE_MAP_READ, offsetHigh, offsetLow, _mappedBytes);
 				break;
 			case MapMode::WriteOnly:
-				mappedView = ::MapViewOfFile(mappedFile, FILE_MAP_WRITE, offsetHigh, offsetLow, mappedBytes);
+				_mappedView = ::MapViewOfFile(_mappedFile, FILE_MAP_WRITE, offsetHigh, offsetLow, _mappedBytes);
 				break;
 			case MapMode::ReadAndWrite:
-				mappedView = ::MapViewOfFile(mappedFile, FILE_MAP_ALL_ACCESS, offsetHigh, offsetLow, mappedBytes);
+				m_appedView = ::MapViewOfFile(_mappedFile, FILE_MAP_ALL_ACCESS, offsetHigh, offsetLow, _mappedBytes);
 				break;
 			default:
 				break;
 		}
 
-		originMappedView = mappedView;
+		_originMappedView = _mappedView;
 
-		if (!mappedView)
+		if (!_mappedView)
 		{
-			mappedBytes = 0;
-			mappedView = nullptr;
-			originMappedView = nullptr;
+			_mappedBytes = 0;
+			_mappedView = nullptr;
+			_originMappedView = nullptr;
 			return false;
 		}
 
@@ -278,26 +274,26 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ, MAP_SHARED, file, offset);
+				_mappedView = ::mmap64(NULL, mappedBytes, PROT_READ, MAP_SHARED, _file, offset);
 				break;
 			case MapMode::WriteOnly:
-				mappedView = ::mmap64(NULL, mappedBytes, PROT_WRITE, MAP_SHARED, file, offset);
+				_mappedView = ::mmap64(NULL, mappedBytes, PROT_WRITE, MAP_SHARED, _file, offset);
 				break;
 			case MapMode::ReadAndWrite:
-				mappedView = ::mmap64(NULL, mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, file, offset);
+				_mappedView = ::mmap64(NULL, mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, offset);
 				break;
 			default:
 				break;
 		}
 
-		originMappedView = mappedView;
+		_originMappedView = _mappedView;
 
-		if (mappedView == MAP_FAILED)
+		if (_mappedView == MAP_FAILED)
 		{
 			perror("mmap"); exit(EXIT_FAILURE);
-			mappedBytes = 0;
-			mappedView = nullptr;
-			originMappedView = nullptr;
+			_mappedBytes = 0;
+			_mappedView = nullptr;
+			_originMappedView = nullptr;
 			return false;
 		}
 
@@ -318,7 +314,7 @@ namespace mm
 				break;
 		}
 
-		::madvise(mappedView, mappedBytes, linuxHint);
+		::madvise(_mappedView, mappedBytes, linuxHint);
 
 		return true;
 #endif
@@ -376,7 +372,7 @@ namespace mm
 	template<CacheHint ch, MapMode mpm>
 	void MemoryMappedFile<ch, mpm>::ReadFrom(unsigned const char* data, const size_t nElementsToWrite)
 	{
-		unsigned char* buffer = reinterpret_cast<unsigned char*>(mappedView);
+		unsigned char* buffer = reinterpret_cast<unsigned char*>(_mappedView);
 		std::memcpy(buffer, data, nElementsToWrite);
 
 		Advance(nElementsToWrite);

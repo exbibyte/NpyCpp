@@ -93,7 +93,7 @@ namespace npypp
 			SetNpyHeaderPadding(properties);
 
 			std::string header = GetMagic();
-			appendBytes<uint16_t>(header, properties.size());
+			appendBytes<uint16_t>(header, static_cast<uint16_t >(properties.size()));
 
 			header.insert(header.end(), properties.begin(), properties.end());
 
@@ -126,7 +126,7 @@ namespace npypp
 			bool fortranOrder = false;
 			detail::ParseNpyHeader(fp, wordSize, shape, fortranOrder);
 
-			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
 			data.resize(nElements);
 
 			const size_t UNUSED charactersRead = fread(data.data(), sizeof(T), nElements, fp);
@@ -146,7 +146,7 @@ namespace npypp
 			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder);
 			mmf.Advance(1);  // getting rid of the newline char
 
-			const size_t UNUSED nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
 			data.resize(nElements);
 
 			mmf.CopyTo(data);
@@ -167,7 +167,7 @@ namespace npypp
 			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder);
 			mmf.Advance(1);  // getting rid of the newline char
 
-			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
 			data = new T[nElements];  // data is a nullptr
 
 			mmf.Set(data);  // no copy, just a reinterpret cast
@@ -180,7 +180,7 @@ namespace npypp
 		template<typename T>
 		uint32_t GetCrcNpyFile(const std::string& npyHeader, const std::vector<T>& data)
 		{
-			const uint32_t crc = crc32(0L, reinterpret_cast<const uint8_t*>(&npyHeader[0]), npyHeader.size());
+			const auto crc = crc32(0L, reinterpret_cast<const uint8_t*>(&npyHeader[0]), static_cast<unsigned int>(npyHeader.size()));
 			return crc32(crc, reinterpret_cast<const uint8_t*>(&data[0]), data.size() * sizeof(T));
 		}
 
@@ -263,7 +263,7 @@ namespace npypp
 		assert(fp != nullptr);
 
 		const std::string header = detail::GetNpyHeader<T>(actualShape);
-		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
 
 		fseek(fp, 0, SEEK_SET);
 		fwrite(&header[0], sizeof(char), header.size(), fp);
@@ -283,7 +283,7 @@ namespace npypp
 		unsigned const char* headerBuffer = reinterpret_cast<unsigned const char*>(header.c_str());
 		mmf.ReadFrom(headerBuffer, header.size());
 
-		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
 		unsigned const char* dataBuffer = reinterpret_cast<unsigned const char*>(data.data());
 		mmf.ReadFrom(dataBuffer, sizeof(T) * nElements);
 	}
@@ -347,14 +347,14 @@ namespace npypp
 			size_t globalHeaderSize;
 			detail::ParseNpzFooter(fp, nRecords, globalHeaderSize, globalHeaderOffset);
 			globalHeader.resize(globalHeaderSize);
-			fseek(fp, globalHeaderOffset, SEEK_SET);
+			fseek(fp, static_cast<long>(globalHeaderOffset), SEEK_SET);
 			
 			//read and store the global header.
 			const size_t UNUSED elementsRead = fread(&globalHeader[0], sizeof(char), globalHeaderSize, fp);
 			assert(elementsRead == globalHeaderSize);
 
 			// below, we will write the the new data at the start of the global header then append the global header and footer below it
-			fseek(fp, globalHeaderOffset, SEEK_SET);
+			fseek(fp, static_cast<long>(globalHeaderOffset), SEEK_SET);
 		}
 		else
 			fopen(fp, zipFileName.c_str(), "wb");
@@ -362,7 +362,7 @@ namespace npypp
 
 		const std::string npyHeader = detail::GetNpyHeader<T>(shape);
 
-		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
 		const size_t nElementsInBytes = nElements * sizeof(T);
 		size_t totalNpyFileBytes = nElementsInBytes + npyHeader.size();
 
@@ -370,12 +370,12 @@ namespace npypp
 		uint32_t crc = detail::GetCrcNpyFile(npyHeader, data);
 
 		// get Npz info
-		std::string localHeader = detail::GetLocalHeader(crc, totalNpyFileBytes, vectorName);
-		detail::AppendGlobalHeader(globalHeader, localHeader, globalHeaderOffset, vectorName);
-		std::string footer = detail::GetNpzFooter(globalHeader, globalHeaderOffset, localHeader.size(), totalNpyFileBytes, nRecords + 1);
+		std::string localHeader = detail::GetLocalHeader(crc, static_cast<uint32_t>(totalNpyFileBytes), vectorName);
+		detail::AppendGlobalHeader(globalHeader, localHeader, static_cast<uint32_t>(globalHeaderOffset), vectorName);
+		std::string footer = detail::GetNpzFooter(globalHeader, static_cast<uint32_t>(globalHeaderOffset), static_cast<uint32_t>(localHeader.size()), static_cast<uint32_t>(totalNpyFileBytes), nRecords + 1);
 
 		// write
-		size_t UNUSED elementsWritten;
+		size_t elementsWritten;
 		elementsWritten = fwrite(&localHeader[0], sizeof(char), localHeader.size(), fp);
 		assert(elementsWritten == localHeader.size());
 
@@ -407,7 +407,7 @@ namespace npypp
 		{
 			constexpr size_t localHeaderSize{ 30 };
 			std::string localHeader(localHeaderSize, ' ');
-			size_t UNUSED elementsRead = fread(&localHeader[0], sizeof(char), localHeaderSize, fp);
+			size_t elementsRead = fread(&localHeader[0], sizeof(char), localHeaderSize, fp);
 			assert(elementsRead == localHeaderSize);
 
 			//if we've reached the global header, stop reading

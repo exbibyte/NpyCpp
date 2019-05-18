@@ -29,9 +29,9 @@ namespace npypp
 			std::string ret;
 
 			ret += "'shape': (";
-			for (size_t i = 0; i < shape.size(); ++i)
+			for (const auto i : shape)
 			{
-				ret += std::to_string(shape[i]);
+				ret += std::to_string(i);
 				ret += ", ";
 			}
 			ret += ")";
@@ -45,7 +45,7 @@ namespace npypp
 			// properties needs to end with \n
 
 			int remainder = 16 - (10 + properties.size()) % 16;
-			properties.insert(properties.end(), remainder, ' ');
+			properties.insert(properties.end(), static_cast<size_t>(remainder), ' ');
 			properties.back() = '\n';
 
 			return properties;
@@ -71,9 +71,9 @@ namespace npypp
 			if (tokens[tokens.size() - 1].find_first_not_of(' ') == std::string::npos)
 				decrementer = 1;
 
-			shape.resize(tokens.size() - decrementer);
+			shape.resize(tokens.size() - static_cast<size_t>(decrementer));
 			for (size_t i = 0; i < shape.size(); ++i)
-				shape[i] = std::atoi(tokens[i].c_str());
+				shape[i] = static_cast<size_t>(std::atoi(tokens[i].c_str()));
 		}
 
 		/**
@@ -93,7 +93,7 @@ namespace npypp
 			std::string wordSizeString = npyHeader.substr(position + 2);
 			position = wordSizeString.find("'");
 			assert(position != std::string::npos);
-			return std::atoi(wordSizeString.substr(0, position).c_str());
+			return static_cast<size_t>(std::atoi(wordSizeString.substr(0, position).c_str()));
 		}
 
 		void ParseNpyHeader(FILE* fp, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder)
@@ -150,7 +150,7 @@ namespace npypp
 			appendBytes<uint32_t>(ret, nBytes); // compressed size
 			appendBytes<uint32_t>(ret, nBytes); // uncompressed size
 
-			appendBytes<uint16_t>(ret, localNpyFileName.size()); // npy file size
+			appendBytes<uint16_t>(ret, static_cast<uint16_t>(localNpyFileName.size())); // npy file size
 			appendBytes<uint16_t>(ret, 0); // extra field length
 
 			ret += localNpyFileName;
@@ -188,7 +188,7 @@ namespace npypp
 			appendBytes<uint16_t>(ret, nNewRecords); // number of records on this disk
 			appendBytes<uint16_t>(ret, nNewRecords); // total number of records
 
-			appendBytes<uint32_t>(ret, globalHeader.size()); // nbytes of global headers
+			appendBytes<uint32_t>(ret, static_cast<uint32_t>(globalHeader.size())); // nbytes of global headers
 			appendBytes<uint32_t>(ret, globalHeaderOffset + nElementsInBytes + localHeaderSize); // offset of start of global headers, since global header now starts after newly written array
 
 			appendBytes<uint16_t>(ret, 0); // zip file comment length

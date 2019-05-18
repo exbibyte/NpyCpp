@@ -10,7 +10,11 @@
 #include <Enumerators.h>
 
 #ifndef _MSC_VER
-    #define UNUSED __attribute__((unused))
+    #ifdef NDEBUG
+        #define UNUSED __attribute__((unused))
+    #else
+        #define UNUSED
+    #endif
 #else
     #define UNUSED
 #endif
@@ -106,13 +110,13 @@ namespace npypp
 	class MultiDimensionalArray
 	{
 	public:
-		MultiDimensionalArray(const std::vector<T>& data, const std::vector<size_t>& shape)
-			: data(data), shape(shape)
+		MultiDimensionalArray(const std::vector<T>& data_, const std::vector<size_t>& shape_)
+			: data(data_), shape(shape_)
 		{
 		}
 
-		MultiDimensionalArray(const std::vector<T>& data, std::vector<size_t>&& shape)
-			: data(data), shape(shape)
+		MultiDimensionalArray(const std::vector<T>& data_, std::vector<size_t>&& shape_)
+			: data(data_), shape(shape_)
 		{
 		}
 
