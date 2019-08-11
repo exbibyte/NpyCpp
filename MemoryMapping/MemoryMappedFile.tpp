@@ -171,10 +171,10 @@ namespace mm
 		}
 
 #ifdef _MSC_VER
-		if (mappedFile)
+		if (_mappedFile)
 		{
-			::CloseHandle(mappedFile);
-			mappedFile = nullptr;
+			::CloseHandle(_mappedFile);
+			_mappedFile = nullptr;
 		}
 #endif
 
@@ -182,7 +182,7 @@ namespace mm
 		if (_file)
 		{
 #ifdef _MSC_VER
-			::CloseHandle(file);
+			::CloseHandle(_file);
 #else
 			::close(_file);
 #endif
@@ -219,7 +219,7 @@ namespace mm
 		if (_mappedView)
 		{
 #ifdef _MSC_VER
-			::UnmapViewOfFile(mappedView);
+			::UnmapViewOfFile(_mappedView);
 #else
 			::munmap(_mappedView, mappedBytes);
 #endif
@@ -232,12 +232,13 @@ namespace mm
 		if (offset + mappedBytes > _fileSize)
 			mappedBytes = size_t(_fileSize - offset);
 
+		_mappedBytes = mappedBytes;
+
 #ifdef _MSC_VER
 		// Windows
 
 		DWORD offsetLow = DWORD(offset & 0xFFFFFFFF);
 		DWORD offsetHigh = DWORD(offset >> 32);
-		_mappedBytes = _mappedBytes;
 
 		// get memory address
 		switch (mpm)
@@ -249,7 +250,7 @@ namespace mm
 				_mappedView = ::MapViewOfFile(_mappedFile, FILE_MAP_WRITE, offsetHigh, offsetLow, _mappedBytes);
 				break;
 			case MapMode::ReadAndWrite:
-				m_appedView = ::MapViewOfFile(_mappedFile, FILE_MAP_ALL_ACCESS, offsetHigh, offsetLow, _mappedBytes);
+				_mappedView = ::MapViewOfFile(_mappedFile, FILE_MAP_ALL_ACCESS, offsetHigh, offsetLow, _mappedBytes);
 				break;
 			default:
 				break;
@@ -274,13 +275,13 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				_mappedView = ::mmap64(NULL, mappedBytes, PROT_READ, MAP_SHARED, _file, offset);
+				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_READ, MAP_SHARED, _file, offset);
 				break;
 			case MapMode::WriteOnly:
-				_mappedView = ::mmap64(NULL, mappedBytes, PROT_WRITE, MAP_SHARED, _file, offset);
+				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_WRITE, MAP_SHARED, _file, offset);
 				break;
 			case MapMode::ReadAndWrite:
-				_mappedView = ::mmap64(NULL, mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, offset);
+				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, offset);
 				break;
 			default:
 				break;
@@ -314,7 +315,7 @@ namespace mm
 				break;
 		}
 
-		::madvise(_mappedView, mappedBytes, linuxHint);
+		::madvise(_mappedView, _mappedBytes, linuxHint);
 
 		return true;
 #endif

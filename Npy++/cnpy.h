@@ -26,11 +26,13 @@
 #endif
 
 #ifndef _MSC_VER
-#ifdef NDEBUG
-    #define UNUSED __attribute__((unused))
+	#ifdef NDEBUG
+		#define UNUSED __attribute__((unused))
+	#else
+		#define UNUSED
+	#endif
 #else
     #define UNUSED
-#endif
 #endif
 
 namespace cnpy {
