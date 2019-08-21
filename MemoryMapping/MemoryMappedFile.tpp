@@ -132,8 +132,6 @@ namespace mm
 			case MapMode::ReadAndWrite:
 				_file = ::open(_filename.c_str(), O_RDWR | O_LARGEFILE);
 				break;
-			default:
-				break;
 		}
 		if (_file == -1)
 		{
@@ -146,7 +144,7 @@ namespace mm
 		if (fstat64(_file, &statInfo) < 0)
 			return false;
 
-		_fileSize = statInfo.st_size;
+		_fileSize = static_cast<uint64_t>(statInfo.st_size);
 #endif
 
 		// initial mapping
@@ -275,15 +273,13 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_READ, MAP_SHARED, _file, offset);
+				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_READ, MAP_SHARED, _file, static_cast<long>(offset));
 				break;
 			case MapMode::WriteOnly:
-				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_WRITE, MAP_SHARED, _file, offset);
+				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_WRITE, MAP_SHARED, _file, static_cast<long>(offset));
 				break;
 			case MapMode::ReadAndWrite:
-				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, offset);
-				break;
-			default:
+				_mappedView = ::mmap64(NULL, _mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, static_cast<long>(offset));
 				break;
 		}
 
@@ -310,8 +306,6 @@ namespace mm
 				break;
 			case CacheHint::RandomAccess:
 				linuxHint = MADV_RANDOM;
-				break;
-			default:
 				break;
 		}
 
