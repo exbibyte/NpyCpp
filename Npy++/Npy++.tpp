@@ -7,9 +7,9 @@
 #include <zlib.h>
 
 #ifdef WIN32
-    #define fopen(FILE_POINTER, FILE_NAME, MODE) fopen_s(&FILE_POINTER, FILE_NAME, MODE)
+    #define FOPEN(FILE_POINTER, FILE_NAME, MODE) fopens(&FILE_POINTER, FILE_NAME, MODE)
 #else
-    #define fopen(FILE_POINTER, FILE_NAME, MODE) FILE_POINTER = fopen(FILE_NAME, MODE)
+    #define FOPEN(FILE_POINTER, FILE_NAME, MODE) FILE_POINTER = fopen(FILE_NAME, MODE)
 #endif
 
 namespace npypp
@@ -181,7 +181,7 @@ namespace npypp
 		uint32_t GetCrcNpyFile(const std::string& npyHeader, const std::vector<T>& data)
 		{
 			const auto crc = crc32(0L, reinterpret_cast<const uint8_t*>(&npyHeader[0]), static_cast<unsigned int>(npyHeader.size()));
-			return crc32(crc, reinterpret_cast<const uint8_t*>(&data[0]), data.size() * sizeof(T));
+			return static_cast<uint32_t>(crc32(crc, reinterpret_cast<const uint8_t*>(&data[0]), static_cast<unsigned>(data.size() * sizeof(T))));
 		}
 
 		template<typename T>
@@ -193,11 +193,11 @@ namespace npypp
 			assert(elementsRead == compressedBytes);
 
 			z_stream stream;
-			stream.zalloc = Z_NULL;
-			stream.zfree = Z_NULL;
-			stream.opaque = Z_NULL;
+			stream.zalloc = nullptr;
+			stream.zfree = nullptr;
+			stream.opaque = nullptr;
 			stream.avail_in = 0;
-			stream.next_in = Z_NULL;
+			stream.next_in = nullptr;
 			inflateInit2(&stream, -MAX_WBITS);
 
 			stream.avail_in = compressedBytes;
@@ -216,7 +216,7 @@ namespace npypp
 			MultiDimensionalArray<T> array;
 			array.shape = shape;
 
-			const int nElementsInBytes = array.data.size() * sizeof(T);
+			const auto nElementsInBytes = array.data.size() * sizeof(T);
 			size_t offset = uncompressedBytes - nElementsInBytes;
 			memcpy(array.data.data(), &bufferUncompressed[0] + offset, nElementsInBytes);
 
@@ -238,7 +238,7 @@ namespace npypp
 		std::vector<size_t> actualShape; // if appending, the shape of existing + new data
 
 		if (mode == "a")
-			fopen(fp, fileName.c_str(), "r+b");
+            FOPEN(fp, fileName.c_str(), "r+b");
 
 		if (fp)
 		{
@@ -257,7 +257,7 @@ namespace npypp
 		else
 		{
 			// file doesn't exist, needs to be created
-			fopen(fp, fileName.c_str(), "wb");
+			FOPEN(fp, fileName.c_str(), "wb");
 			actualShape = shape;
 		}
 		assert(fp != nullptr);
@@ -297,7 +297,7 @@ namespace npypp
 		if (!useMemoryMap)
 		{
 			FILE* fp = nullptr;
-			fopen(fp, fileName.c_str(), "rb");
+			FOPEN(fp, fileName.c_str(), "rb");
 			auto ret = detail::LoadFull<T>(fp);
 			fclose(fp);
 
@@ -337,7 +337,7 @@ namespace npypp
 		std::string globalHeader;
 
 		if (mode == "a")
-			fopen(fp, zipFileName.c_str(), "r+b");
+			FOPEN(fp, zipFileName.c_str(), "r+b");
 
 		if (fp)
 		{
@@ -357,7 +357,7 @@ namespace npypp
 			fseek(fp, static_cast<long>(globalHeaderOffset), SEEK_SET);
 		}
 		else
-			fopen(fp, zipFileName.c_str(), "wb");
+			FOPEN(fp, zipFileName.c_str(), "wb");
 		assert(fp != nullptr);
 
 		const std::string npyHeader = detail::GetNpyHeader<T>(shape);
@@ -372,10 +372,10 @@ namespace npypp
 		// get Npz info
 		std::string localHeader = detail::GetLocalHeader(crc, static_cast<uint32_t>(totalNpyFileBytes), vectorName);
 		detail::AppendGlobalHeader(globalHeader, localHeader, static_cast<uint32_t>(globalHeaderOffset), vectorName);
-		std::string footer = detail::GetNpzFooter(globalHeader, static_cast<uint32_t>(globalHeaderOffset), static_cast<uint32_t>(localHeader.size()), static_cast<uint32_t>(totalNpyFileBytes), nRecords + 1);
+		std::string footer = detail::GetNpzFooter(globalHeader, static_cast<uint32_t>(globalHeaderOffset), static_cast<uint32_t>(localHeader.size()), static_cast<uint32_t>(totalNpyFileBytes), static_cast<uint16_t>(nRecords + 1));
 
 		// write
-		size_t elementsWritten;
+		size_t UNUSED_BUT_SET elementsWritten;
 		elementsWritten = fwrite(&localHeader[0], sizeof(char), localHeader.size(), fp);
 		assert(elementsWritten == localHeader.size());
 
@@ -398,7 +398,7 @@ namespace npypp
 	CompressedMapFull<T> LoadCompressedFull(const std::string& zipFileName)
 	{
 		FILE* fp = nullptr;
-		fopen(fp, zipFileName.c_str(), "rb");
+		FOPEN(fp, zipFileName.c_str(), "rb");
 		assert(fp != nullptr);
 
 		CompressedMapFull<T> ret;
@@ -406,8 +406,8 @@ namespace npypp
 		while (true)
 		{
 			constexpr size_t localHeaderSize{ 30 };
-			std::string localHeader(localHeaderSize, ' ');
-			size_t elementsRead = fread(&localHeader[0], sizeof(char), localHeaderSize, fp);
+            std::array<char, localHeaderSize> localHeader {};
+			size_t UNUSED_BUT_SET elementsRead = fread(localHeader.data(), sizeof(char), localHeaderSize, fp);
 			assert(elementsRead == localHeaderSize);
 
 			//if we've reached the global header, stop reading
@@ -415,7 +415,8 @@ namespace npypp
 				break;
 
 			//read in the variable name
-			uint16_t vectorNameLength = *reinterpret_cast<uint16_t*>(&localHeader[26]);
+			uint16_t vectorNameLength;
+			std::memcpy(&vectorNameLength, &localHeader[26], sizeof(vectorNameLength));
 			std::string vectorName(vectorNameLength, ' ');
 			elementsRead = fread(&vectorName[0], sizeof(char), vectorNameLength, fp);
 			assert(elementsRead == vectorNameLength);
@@ -424,7 +425,8 @@ namespace npypp
 			vectorName.erase(vectorName.end() - 4, vectorName.end());
 
 			// read in the extra field
-			uint16_t extraFieldsLength = *reinterpret_cast<uint16_t*>(&localHeader[28]);
+			uint16_t extraFieldsLength;
+			std::memcpy(&extraFieldsLength, &localHeader[28], sizeof(extraFieldsLength));
 			if (extraFieldsLength > 0)
 			{
 				std::string tmp(extraFieldsLength, ' ');
@@ -432,9 +434,12 @@ namespace npypp
 				assert(elementsRead == extraFieldsLength);
 			}
 
-			const uint16_t compressionMethod = *reinterpret_cast<uint16_t*>(&localHeader[8]);
-			const uint32_t compressedBytes = *reinterpret_cast<uint32_t*>(&localHeader[18]);
-			const uint32_t uncompressedBytes = *reinterpret_cast<uint32_t*>(&localHeader[22]);
+			uint16_t compressionMethod;
+			std::memcpy(&compressionMethod, &localHeader[8], sizeof(compressionMethod));
+            uint32_t compressedBytes;
+            std::memcpy(&compressedBytes, &localHeader[18], sizeof(compressedBytes));
+            uint32_t uncompressedBytes;
+            std::memcpy(&uncompressedBytes, &localHeader[22], sizeof(uncompressedBytes));
 
 			if (compressionMethod == 0)
 				ret[vectorName] = detail::LoadFull<T>(fp);

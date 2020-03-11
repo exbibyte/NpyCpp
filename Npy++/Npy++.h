@@ -11,9 +11,16 @@
 
 #ifndef _MSC_VER
     #ifdef NDEBUG
-        #define UNUSED __attribute__((unused))
+        #ifdef __clang__
+            #define UNUSED __attribute__((unused))
+            #define UNUSED_BUT_SET
+        #else
+            #define UNUSED __attribute__((unused))
+            #define UNUSED_BUT_SET UNUSED
+        #endif
     #else
         #define UNUSED
+        #define UNUSED_BUT_SET
     #endif
 #else
     #define UNUSED
@@ -127,8 +134,8 @@ namespace npypp
 		MultiDimensionalArray& operator=(const MultiDimensionalArray&) = default;
 		MultiDimensionalArray& operator=(MultiDimensionalArray&&) = default;
 
-		std::vector<T> data;
-		std::vector<size_t> shape;
+		std::vector<T> data {};
+		std::vector<size_t> shape {};
 	};
 
 	template<typename T>

@@ -44,8 +44,8 @@ namespace npypp
 			// pad with spaces so that preamble + dict is modulo 16 bytes. preamble is 10 bytes. 
 			// properties needs to end with \n
 
-			int remainder = 16 - (10 + properties.size()) % 16;
-			properties.insert(properties.end(), static_cast<size_t>(remainder), ' ');
+			auto remainder = 16 - (10 + properties.size()) % 16;
+			properties.insert(properties.end(), remainder, ' ');
 			properties.back() = '\n';
 
 			return properties;
@@ -121,18 +121,21 @@ namespace npypp
 			// footer is 22 chars long, seek the file pointer to 22 places from the end
 			fseek(fp, -footerLength, SEEK_END);
 
-			std::string footer(footerLength, ' ');
+			std::array<char, footerLength> footer {};
 			size_t UNUSED elementsRead = fread(&footer[0], sizeof(char), footerLength, fp);
 			assert(elementsRead == footerLength);
 
-			nRecords = *reinterpret_cast<uint16_t*>(&footer[10]);
-			globalHeaderSize = *reinterpret_cast<uint32_t*>(&footer[12]);
-			globalHeaderOffset = *reinterpret_cast<uint32_t*>(&footer[16]);
+			std::memcpy(&nRecords, &footer[10], sizeof(nRecords));
+            std::memcpy(&globalHeaderSize, &footer[12], sizeof(globalHeaderSize));
+            std::memcpy(&globalHeaderOffset, &footer[16], sizeof(globalHeaderOffset));
 
-			assert(*reinterpret_cast<uint16_t*>(&footer[4]) == 0);
-			assert(*reinterpret_cast<uint16_t*>(&footer[6]) == 0);
-			assert(*reinterpret_cast<uint16_t*>(&footer[8]) == nRecords);
-			assert(*reinterpret_cast<uint16_t*>(&footer[20]) == 0);
+            #ifndef NDEBUG
+                uint16_t tmp;
+                std::memcpy(&tmp, &footer[4], sizeof(tmp)); assert(tmp == 0);
+                std::memcpy(&tmp, &footer[6], sizeof(tmp)); assert(tmp == 0);
+                std::memcpy(&tmp, &footer[8], sizeof(tmp)); assert(tmp == nRecords);
+                std::memcpy(&tmp, &footer[20], sizeof(tmp)); assert(tmp == 0);
+            #endif
 		}
 
 		std::string GetLocalHeader(const uint32_t crc, const uint32_t nBytes, const std::string& localNpyFileName)
