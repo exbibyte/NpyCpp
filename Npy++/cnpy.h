@@ -20,9 +20,9 @@
 #include<numeric>
 
 #ifdef WIN32
-    #define fopen(FILE_POINTER, FILE_NAME, MODE) fopen_s(&FILE_POINTER, FILE_NAME, MODE)
+    #define FOPEN(FILE_POINTER, FILE_NAME, MODE) fopen_s(&FILE_POINTER, FILE_NAME, MODE)
 #else
-    #define fopen(FILE_POINTER, FILE_NAME, MODE) FILE_POINTER = fopen(FILE_NAME, MODE)
+    #define FOPEN(FILE_POINTER, FILE_NAME, MODE) FILE_POINTER = fopen(FILE_NAME, MODE)
 #endif
 
 #ifndef _MSC_VER
@@ -106,7 +106,7 @@ namespace cnpy {
         std::vector<size_t> true_data_shape; //if appending, the shape of existing + new data
 
         if(mode == "a") 
-			fopen(fp, fname.c_str(),"r+b");
+			FOPEN(fp, fname.c_str(),"r+b");
 
         if(fp) {
             //file exists. we need to append to it. read the header, modify the array size
@@ -133,7 +133,7 @@ namespace cnpy {
             true_data_shape[0] += shape[0];
         }
         else {
-            fopen(fp, fname.c_str(),"wb");
+            FOPEN(fp, fname.c_str(),"wb");
             true_data_shape = shape;
         }
 
@@ -159,7 +159,7 @@ namespace cnpy {
         std::vector<char> global_header;
 
         if(mode == "a") 
-			fopen(fp, zipname.c_str(),"r+b");
+			FOPEN(fp, zipname.c_str(),"r+b");
 
         if(fp) {
             //zip file exists. we need to add a new npy file to it.
@@ -177,7 +177,7 @@ namespace cnpy {
             fseek(fp,global_header_offset,SEEK_SET);
         }
         else {
-            fopen(fp, zipname.c_str(),"wb");
+            FOPEN(fp, zipname.c_str(),"wb");
         }
 
         std::vector<char> npy_header = create_npy_header<T>(shape);
