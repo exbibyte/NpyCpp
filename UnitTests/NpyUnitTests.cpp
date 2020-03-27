@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <cnpy.h>
 #include <Npy++.h>
+#include <cnpy.h>
 
 #include<complex>
 #include<cstdlib>
@@ -31,6 +32,21 @@ public:
 protected:
 	std::vector<std::complex<double>> data;
 };
+
+TEST_F(NpyTests, OriginalLibraryConsistency)
+{
+	npypp::Save("v.npy", data, shape, "w");
+	cnpy::npy_save("v.cnpy", data.data(), shape, "w");
+
+	auto loadedData = npypp::Load<std::complex<double>>("v.npy");
+	auto loadedData2 = npypp::Load<std::complex<double>>("v.cnpy");
+
+	for (size_t i = 0; i < TotalSize; i++)
+	{
+		ASSERT_TRUE(data[i] == loadedData[i]);
+		ASSERT_TRUE(data[i] == loadedData2[i]);
+	}
+}
 
 TEST_F(NpyTests, ReadAndSave)
 {

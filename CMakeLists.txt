@@ -3,14 +3,17 @@ include_guard()
 cmake_minimum_required(VERSION 3.14)
 project(NeuralNetworks)
 
-include(cmake/All.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/All.cmake)
 
 create_library(
     NAME
         cnpy
     SOURCES
         Npy++/cnpy.cpp
+	PUBLIC_INCLUDE_DIRECTORIES
+		Npy++
     DO_NOT_USE_WARNINGS
+	DO_NOT_USE_PEDANTIC_WARNINGS
 )
 
 find_package(ZLIB REQUIRED)
@@ -18,7 +21,7 @@ create_library(
     NAME
         Npy++
     SOURCES
-        Npy++/Npy++.cpp
+        Npy++/dummy.cpp
     PUBLIC_INCLUDE_DIRECTORIES
         Npy++ MemoryMapping
     SYSTEM_DEPENDENCIES
@@ -37,6 +40,7 @@ create_test(
         UnitTests/NpzUnitTests.cpp
         UnitTests/pch.cpp
     DO_NOT_USE_WARNINGS
+	DO_NOT_USE_PEDANTIC_WARNINGS
     PUBLIC_INCLUDE_DIRECTORIES
         ${GTEST_INCLUDE_DIR}
     DEPENDENCIES

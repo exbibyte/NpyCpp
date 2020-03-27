@@ -93,7 +93,7 @@ namespace npypp
 			SetNpyHeaderPadding(properties);
 
 			std::string header = GetMagic();
-			appendBytes<uint16_t>(header, static_cast<uint16_t >(properties.size()));
+			appendBytes<uint16_t>(header, static_cast<uint16_t>(properties.size()));
 
 			header.insert(header.end(), properties.begin(), properties.end());
 

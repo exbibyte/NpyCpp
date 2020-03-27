@@ -226,7 +226,7 @@ cnpy::NpyArray load_the_npz_array(FILE* fp, uint32_t compr_bytes, uint32_t uncom
 
 cnpy::npz_t cnpy::npz_load(std::string fname) {
 	FILE* fp = nullptr;
-    fopen(fp, fname.c_str(),"rb");
+    FOPEN(fp, fname.c_str(),"rb");
 
     if(!fp) {
         throw std::runtime_error("npz_load: Error! Unable to open file "+fname+"!");
@@ -276,7 +276,7 @@ cnpy::npz_t cnpy::npz_load(std::string fname) {
 
 cnpy::NpyArray cnpy::npz_load(std::string fname, std::string varname) {
 	FILE* fp = nullptr;
-	fopen(fp, fname.c_str(), "rb");
+	FOPEN(fp, fname.c_str(), "rb");
 
     if(!fp) throw std::runtime_error("npz_load: Unable to open file "+fname);
 
@@ -326,7 +326,7 @@ cnpy::NpyArray cnpy::npz_load(std::string fname, std::string varname) {
 cnpy::NpyArray cnpy::npy_load(std::string fname) {
 
 	FILE* fp = nullptr;
-	fopen(fp, fname.c_str(), "rb");
+	FOPEN(fp, fname.c_str(), "rb");
 
     if(!fp) throw std::runtime_error("npy_load: Unable to open file "+fname);
 

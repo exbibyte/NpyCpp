@@ -1,5 +1,4 @@
 #include "pch.h"
-#include <cnpy.h>
 #include <Npy++.h>
 
 #include<complex>
