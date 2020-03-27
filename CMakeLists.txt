@@ -1,9 +1,9 @@
 include_guard()
 
 cmake_minimum_required(VERSION 3.14)
-project(NeuralNetworks)
+project(NpyCpp)
 
-include(cmake/All.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/All.cmake)
 
 create_library(
     NAME
