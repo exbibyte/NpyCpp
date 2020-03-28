@@ -16,7 +16,8 @@ create_library(
 	DO_NOT_USE_PEDANTIC_WARNINGS
 )
 
-find_package(ZLIB REQUIRED)
+# zlib
+add_subdirectory(zlib ${CMAKE_BINARY_DIR}/zlib EXCLUDE_FROM_ALL)
 create_library(
     NAME
         Npy++
@@ -25,10 +26,11 @@ create_library(
     PUBLIC_INCLUDE_DIRECTORIES
         Npy++ MemoryMapping
     SYSTEM_DEPENDENCIES
-        ${ZLIB_LIBRARIES}
+        zlib
 )
 
-find_package(GTest REQUIRED)
+# gtest
+add_subdirectory(gtest ${CMAKE_BINARY_DIR}/gtest EXCLUDE_FROM_ALL)
 create_test(
     NAME
         NpyTests
