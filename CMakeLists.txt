@@ -17,7 +17,7 @@ create_library(
 )
 
 # zlib
-add_subdirectory(zlib ${CMAKE_BINARY_DIR}/zlib EXCLUDE_FROM_ALL)
+add_subdirectory(zlib ${CMAKE_BINARY_DIR}/NpyCpp/zlib EXCLUDE_FROM_ALL)
 create_library(
     NAME
         Npy++
@@ -30,7 +30,7 @@ create_library(
 )
 
 # gtest
-add_subdirectory(gtest ${CMAKE_BINARY_DIR}/gtest EXCLUDE_FROM_ALL)
+add_subdirectory(gtest ${CMAKE_BINARY_DIR}/NpyCpp/gtest EXCLUDE_FROM_ALL)
 create_test(
     NAME
         NpyTests
