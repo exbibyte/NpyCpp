@@ -31,6 +31,9 @@ create_library(
 
 # gtest
 add_subdirectory(gtest ${CMAKE_BINARY_DIR}/NpyCpp/gtest EXCLUDE_FROM_ALL)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	target_compile_options(gtest PRIVATE -Wno-unknown-cuda-version)
+endif()
 create_test(
     NAME
         NpyTests
