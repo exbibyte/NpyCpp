@@ -160,6 +160,7 @@ namespace mm
 	template<CacheHint ch, MapMode mpm>
 	void MemoryMappedFile<ch, mpm>::Close()
 	{
+	        Rewind();
 		// kill pointer
 		if (_mappedView)
 		{
@@ -219,6 +220,7 @@ namespace mm
 		// close old mapping
 		if (_mappedView)
 		{
+		        Rewind();
 #ifdef _MSC_VER
 			::UnmapViewOfFile(_mappedView);
 #else
