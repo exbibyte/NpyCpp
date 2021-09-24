@@ -192,15 +192,20 @@ namespace npypp
 			assert(elementsRead == footerLength);
 
 			std::memcpy(&nRecords, &footer[10], sizeof(nRecords));
-			std::memcpy(&globalHeaderSize, &footer[12], sizeof(uint32_t));
-			std::memcpy(&globalHeaderOffset, &footer[16], sizeof(uint32_t));
+
+                        uint32_t tmp;
+                        std::memcpy(&tmp, &footer[12], sizeof(uint32_t));
+                        globalHeaderSize = tmp;
+
+			std::memcpy(&tmp, &footer[16], sizeof(uint32_t));
+                        globalHeaderOffset = tmp;
 
 			#ifndef NDEBUG
-				uint16_t tmp;
-				std::memcpy(&tmp, &footer[4], sizeof(tmp)); assert(tmp == 0);
-				std::memcpy(&tmp, &footer[6], sizeof(tmp)); assert(tmp == 0);
-				std::memcpy(&tmp, &footer[8], sizeof(tmp)); assert(tmp == nRecords);
-				std::memcpy(&tmp, &footer[20], sizeof(tmp)); assert(tmp == 0);
+				uint16_t tmp2;
+				std::memcpy(&tmp2, &footer[4], sizeof(tmp2)); assert(tmp2 == 0);
+				std::memcpy(&tmp2, &footer[6], sizeof(tmp2)); assert(tmp2 == 0);
+				std::memcpy(&tmp2, &footer[8], sizeof(tmp2)); assert(tmp2 == nRecords);
+				std::memcpy(&tmp2, &footer[20], sizeof(tmp2)); assert(tmp2 == 0);
 			#endif
 		}
 
