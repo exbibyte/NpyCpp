@@ -17,7 +17,8 @@ create_library(
 )
 
 # zlib
-add_subdirectory(zlib ${CMAKE_BINARY_DIR}/NpyCpp/zlib EXCLUDE_FROM_ALL)
+#add_subdirectory(zlib ${CMAKE_BINARY_DIR}/NpyCpp/zlib EXCLUDE_FROM_ALL)
+# sudo apt install zlib1g zlib1g-dev
 create_library(
     NAME
         Npy++
@@ -26,7 +27,7 @@ create_library(
     PUBLIC_INCLUDE_DIRECTORIES
         Npy++ MemoryMapping
     SYSTEM_DEPENDENCIES
-        zlib
+        z
 )
 
 # gtest
