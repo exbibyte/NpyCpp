@@ -4,6 +4,3 @@
 [submodule "gtest"]
 	path = gtest
 	url = git@github.com:google/googletest.git
-[submodule "zlib"]
-	path = zlib
-	url = git@github.com:madler/zlib.git
