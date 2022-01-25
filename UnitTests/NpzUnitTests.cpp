@@ -104,3 +104,18 @@ TEST_F(NpzTests, AppendFull)
 		ASSERT_TRUE(data[i] == loadedData2.data[i]);
 	}
 }
+
+TEST_F(NpzTests, ReadBigEndian)
+{
+	auto arrayDictionary = npypp::LoadCompressedFull<uint16_t>("0123.npz");
+	ASSERT_EQ(arrayDictionary.size(), 1);
+	auto iter = arrayDictionary.begin();
+	ASSERT_EQ(iter -> first, "x");
+	auto array = iter -> second;
+	auto shape = array.shape;
+	for (size_t i = 0; i < shape.size(); i++)
+		ASSERT_EQ(shape[i], 2);
+	auto data = array.data;
+	for (size_t i = 0; i < data.size(); i++)
+		ASSERT_EQ(data[i], i);
+}

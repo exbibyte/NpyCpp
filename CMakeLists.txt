@@ -54,3 +54,6 @@ create_test(
     SYSTEM_DEPENDENCIES
         gtest pthread
 )
+add_custom_command(TARGET NpyTests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/UnitTests/0123.npz ${CMAKE_BINARY_DIR}/0123.npz
+)

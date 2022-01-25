@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 #include <vector>
 #include <cassert>
 #include <unordered_map>
@@ -37,7 +38,7 @@ namespace npypp
 
 	namespace detail
 	{
-		static inline char IsBigEndian()
+		static inline char SysEndianness()
 		{
 			union
 			{
@@ -127,43 +128,59 @@ namespace npypp
 				shape[i] = static_cast<size_t>(std::atoi(tokens[i].c_str()));
 		}
 
-		/**
-		* Returns the word size
-		*/
-		static inline size_t ParseDescription(const std::string& npyHeader)
+
+		static inline void ParseDescription(const std::string& npyHeader, size_t& wordSize, char& endianness)
 		{
 			auto position = npyHeader.find("descr");
 			assert(position != std::string::npos);
 
 			position += 9;
-			//byte order code | stands for not applicable.
-			//not sure when this applies except for byte array
-			const bool UNUSED littleEndian = npyHeader[position] == '<' || npyHeader[position] == '|';
-			assert(littleEndian);
+			char e = npyHeader[position];
+			assert(e == '<' || e == '|' || e == '>');
+			endianness = e;
 
-			std::string wordSizeString = npyHeader.substr(position + 2);
+			std::string wordSizeString = npyHeader.substr(position+2);
 			position = wordSizeString.find("'");
 			assert(position != std::string::npos);
-			return static_cast<size_t>(std::atoi(wordSizeString.substr(0, position).c_str()));
+			wordSize = static_cast<size_t>(std::atoi(wordSizeString.substr(0, position).c_str()));
 		}
 
-		static inline void ParseNpyHeader(FILE* fp, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder)
+		static inline void ParseNpyHeader(const std::string& header, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder, char& endianness)
+		{
+			assert(header[header.size() - 1] == '\n');
+			fortranOrder = ParseFortranOrder(header);
+			ParseShape(shape, header);
+			ParseDescription(header, wordSize, endianness);
+		}
+
+		static inline void ParseNpyHeader(const std::vector<unsigned char>& buffer, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder, char& endianness)
+		{
+			constexpr int preambleSize{ 11 };
+			assert(buffer.size() > preambleSize);
+			size_t headerBufferSize = buffer.size() < 256ul? buffer.size(): 256ul;
+			std::ostringstream ss;
+			for (size_t i = 0; i < headerBufferSize; i++)
+			{
+				ss << buffer[i];
+				if (buffer[i] == '\n')
+					break;
+			}
+			std::string header = ss.str();
+			ParseNpyHeader(header, wordSize, shape, fortranOrder, endianness);
+		}
+
+		static inline void ParseNpyHeader(FILE* fp, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder, char& endianness)
 		{
 			constexpr size_t expectedCharToRead{ 11 };
 			char buffer[256];
 			const size_t UNUSED charactersRead = fread(buffer, sizeof(char), expectedCharToRead, fp);
 			assert(charactersRead == expectedCharToRead);
-
 			std::string header = fgets(buffer, 256, fp);
-			assert(header[header.size() - 1] == '\n');
-
-			fortranOrder = ParseFortranOrder(header);
-			ParseShape(shape, header);
-			wordSize = ParseDescription(header);
+			ParseNpyHeader(header, wordSize, shape, fortranOrder, endianness);
 		}
 
 		template<typename mm::CacheHint ch = mm::CacheHint::SequentialScan, typename mm::MapMode mpm = mm::MapMode::ReadOnly>
-		static void ParseNpyHeader(mm::MemoryMappedFile<ch, mpm>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder);
+		static void ParseNpyHeader(mm::MemoryMappedFile<ch, mpm>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder, char& endianness);
 
 		template<typename T>
 		static MultiDimensionalArray<T> LoadFull(FILE* fp);

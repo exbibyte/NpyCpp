@@ -68,7 +68,7 @@ namespace npypp
 		{
 			std::string ret;
 			ret += "'descr': '";
-			ret += IsBigEndian();
+			ret += SysEndianness();
 			ret += Traits<T>::id;
 			ret += std::to_string(sizeof(T));
 			ret += "'";
@@ -101,7 +101,7 @@ namespace npypp
 		}
 
 		template<typename mm::CacheHint ch, typename mm::MapMode mpm>
-		void ParseNpyHeader(mm::MemoryMappedFile<ch, mpm>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder)
+		void ParseNpyHeader(mm::MemoryMappedFile<ch, mpm>& mmf, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder, char& endianness)
 		{
 			constexpr size_t expectedCharToRead{ 11 };
 			mmf.Advance(expectedCharToRead);
@@ -111,7 +111,28 @@ namespace npypp
 
 			fortranOrder = ParseFortranOrder(header);
 			ParseShape(shape, header);
-			wordSize = ParseDescription(header);
+			ParseDescription(header, wordSize, endianness);
+		}
+
+		template <typename T> static void SwapEndianness(T *buffer, size_t size)
+		{
+			constexpr size_t s = sizeof(T);
+			#pragma omp parallel for
+			for (size_t i = 0; i < size; i++)
+			{
+				uint8_t *src = (uint8_t *)(buffer + i);
+				uint8_t dst[s];
+				for (size_t j = 0; j < s; j++)
+				{
+				dst[j] = src[s - j - 1];
+				}
+				buffer[i] = *(T *)(dst);
+			}
+		}
+
+		template <typename T> static void SwapEndianness(std::vector<T>& v)
+		{
+			SwapEndianness(v.data(), v.size());
 		}
 
 		template<typename T>
@@ -124,13 +145,17 @@ namespace npypp
 			std::vector<size_t> shape;
 			size_t wordSize = 0;
 			bool fortranOrder = false;
-			detail::ParseNpyHeader(fp, wordSize, shape, fortranOrder);
+			char endianness;
+			detail::ParseNpyHeader(fp, wordSize, shape, fortranOrder, endianness);
 
 			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
 			data.resize(nElements);
 
 			const size_t UNUSED charactersRead = fread(data.data(), sizeof(T), nElements, fp);
 			assert(charactersRead == nElements);
+
+			if (endianness != '|' && (endianness != SysEndianness()))
+				SwapEndianness(data);
 
 			return MultiDimensionalArray<T>(data, shape);
 		}
@@ -143,7 +168,8 @@ namespace npypp
 			std::vector<size_t> shape;
 			size_t wordSize = 0;
 			bool fortranOrder = false;
-			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder);
+			char endianness;
+			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder, endianness);
 			mmf.Advance(1);  // getting rid of the newline char
 
 			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
@@ -164,7 +190,8 @@ namespace npypp
 			std::vector<size_t> shape;
 			size_t wordSize = 0;
 			bool fortranOrder = false;
-			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder);
+			char endianness;
+			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder, endianness);
 			mmf.Advance(1);  // getting rid of the newline char
 
 			const size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
@@ -188,8 +215,8 @@ namespace npypp
 		MultiDimensionalArray<T> LoadCompressedFull(FILE* fp, uint32_t compressedBytes, uint32_t uncompressedBytes)
 		{
 			std::vector<unsigned char> bufferCompressed(compressedBytes);
-			std::vector<unsigned char> bufferUncompressed(compressedBytes);
-			size_t UNUSED elementsRead = fread(&bufferCompressed[0], 1, compressedBytes, fp);
+			std::vector<unsigned char> bufferUncompressed(uncompressedBytes);
+			size_t UNUSED elementsRead = fread(bufferCompressed.data(), 1, compressedBytes, fp);
 			assert(elementsRead == compressedBytes);
 
 			z_stream stream;
@@ -211,14 +238,19 @@ namespace npypp
 			std::vector<size_t> shape;
 			size_t wordSize = 0;
 			bool fortranOrder = false;
-			ParseNpyHeader(fp, wordSize, shape, fortranOrder);
+			char endianness;
+			detail::ParseNpyHeader(bufferUncompressed, wordSize, shape, fortranOrder, endianness);
 
 			MultiDimensionalArray<T> array;
 			array.shape = shape;
-
-			const auto nElementsInBytes = array.data.size() * sizeof(T);
+			size_t nElements = std::accumulate(shape.begin(), shape.end(), 1u, std::multiplies<size_t>());
+			array.data.resize(nElements);
+			size_t nElementsInBytes = nElements * sizeof(T);
 			size_t offset = uncompressedBytes - nElementsInBytes;
-			memcpy(array.data.data(), &bufferUncompressed[0] + offset, nElementsInBytes);
+			memcpy(array.data.data(), bufferUncompressed.data() + offset, nElementsInBytes);
+
+			if (endianness != '|' && (endianness != SysEndianness()))
+				SwapEndianness(array.data);
 
 			return array;
 		}
@@ -245,7 +277,8 @@ namespace npypp
 			// file exists. we need to append to it. read the header, modify the array size
 			size_t wordSize;
 			bool fortranOrder;
-			detail::ParseNpyHeader(fp, wordSize, actualShape, fortranOrder);
+			char endianness;
+			detail::ParseNpyHeader(fp, wordSize, actualShape, fortranOrder, endianness);
 			assert(!fortranOrder);
 			assert(wordSize == sizeof(T));
 			assert(actualShape.size() == shape.size());
