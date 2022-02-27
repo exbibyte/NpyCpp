@@ -35,9 +35,9 @@ jobs:
           git submodule update --init --recursive
 
       - name: Install cmake
-        uses: jwlawson/actions-setup-cmake@v1.12
-        with:
-          cmake-version: '3.22.x'
+        run: |
+          sudo apt update
+          sudo apt install cmake
 
       - name: Install ninja
         uses: seanmiddleditch/gha-setup-ninja@v3
