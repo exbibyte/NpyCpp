@@ -45,15 +45,15 @@ jobs:
 
       - name: Cmake
         run: |
-          cd ${{runner.workspace}}/CmakeUtilities
+          cd ${{runner.workspace}}/NpyCpp
           cmake . --preset=${{matrix.preset}}
 
       - name: Build
         run: |
-          cd ${{runner.workspace}}/CmakeUtilities/cmake-build-${{matrix.preset}}
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-${{matrix.preset}}
           ninja
 
       - name: Test
         run: |
-          cd ${{runner.workspace}}/CmakeUtilities/cmake-build-${{matrix.preset}}
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-${{matrix.preset}}
           ninja build_and_test
