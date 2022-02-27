@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install gcc-11
+        run: |
+          sudo apt update
+          sudo apt install gcc-11 g++-11
+
+      - name: Install clang-12
+        run: |
+          sudo apt update
+          sudo apt install clang-12
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install cmake
+        uses: jwlawson/actions-setup-cmake@v1.12
+        with:
+          cmake-version: '3.22.x'
+
+      - name: Install ninja
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
+      - name: Install gtest
+        run: sudo apt-get install libgtest-dev
+
+      - name: Install zlib
+        run: sudo apt-get install zlib1g zlib1g-dev
+
+      - name: Install gcovr
+        shell: bash
+        run: |
+          pip install gcovr
+
+      - name: Cmake
+        run: |
+          cd ${{runner.workspace}}/NpyCpp
+          cmake . --preset=gcc-coverage
+
+      - name: Build
+        run: |
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
+          ninja
+
+      - name: Test
+        run: |
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
+          ninja build_and_test
+          
+      - name: Coverage report
+        shell: bash
+        run: |
+          cd ${{runner.workspace}}/NpyCpp
+          mkdir -p Coverage
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
+          mkdir Coverage
+          cd Coverage
+          gcovr -r ../ -x coverage.xml --xml-pretty --exclude-directories='.*cnpy.*' --gcov-exclude='.*cnpy.*' --exclude-unreachable-branches --exclude-throw-branches --gcov-executable=gcov-11 -s
+          mv coverage.xml ${{runner.workspace}}/coverage.xml
+          gcovr -r ../../ --html coverage.html --html-details --exclude-directories='.*cnpy.*' --gcov-exclude='.*cnpy.*' --exclude-unreachable-branches --exclude-throw-branches --gcov-executable=gcov-11 -s
+          cd ../
+
+      - name: Archive coverage results
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: ${{runner.workspace}}/coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ${{runner.workspace}}/coverage.xml # optional
+          name: Unit Tests # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
