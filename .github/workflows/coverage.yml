@@ -46,31 +46,28 @@ jobs:
 
       - name: Cmake
         run: |
-          cd ${{runner.workspace}}/NpyCpp
+          cd ${{runner.workspace}}
           cmake . --preset=gcc-coverage
 
       - name: Build
         run: |
-          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
+          cd ${{runner.workspace}}/cmake-build-gcc-coverage
           ninja
 
       - name: Test
         run: |
-          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
+          cd ${{runner.workspace}}/cmake-build-gcc-coverage
           ninja build_and_test
           
       - name: Coverage report
         shell: bash
         run: |
-          cd ${{runner.workspace}}/NpyCpp
-          mkdir -p Coverage
-          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
+          cd ${{runner.workspace}}
+          cd ${{runner.workspace}}/cmake-build-gcc-coverage
           mkdir Coverage
           cd Coverage
           gcovr -r ../ -x coverage.xml --xml-pretty --exclude-directories='.*cnpy.*' --gcov-exclude='.*cnpy.*' --exclude-unreachable-branches --exclude-throw-branches --gcov-executable=gcov-11 -s
           mv coverage.xml ${{runner.workspace}}/coverage.xml
-          gcovr -r ../../ --html coverage.html --html-details --exclude-directories='.*cnpy.*' --gcov-exclude='.*cnpy.*' --exclude-unreachable-branches --exclude-throw-branches --gcov-executable=gcov-11 -s
-          cd ../
 
       - name: Archive coverage results
         uses: actions/upload-artifact@v2
