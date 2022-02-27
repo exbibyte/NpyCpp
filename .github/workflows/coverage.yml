@@ -75,7 +75,7 @@ jobs:
           cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
           mkdir Coverage
           cd Coverage
-          gcovr -r ../ -x coverage.xml --xml-pretty --exclude-directories='.*cnpy.*' --gcov-exclude='.*cnpy.*' --exclude-unreachable-branches --exclude-throw-branches --gcov-executable=gcov-11 -s
+          gcovr -r ../../ -x coverage.xml --xml-pretty --exclude-directories='.*cnpy.*' --gcov-exclude='.*cnpy.*' --exclude-unreachable-branches --exclude-throw-branches --gcov-executable=gcov-11 -s
           mv coverage.xml ${{runner.workspace}}/coverage.xml
 
       - name: Archive coverage results

@@ -1,3 +1,6 @@
+[![CI](https://github.com/pmontalb/NpyCpp/actions/workflows/ci.yml/badge.svg)](https://github.com/pmontalb/NpyCpp/actions/workflows/ci.yml)
+[![Coverage](https://github.com/pmontalb/NpyCpp/actions/workflows/coverage.yml/badge.svg)](https://github.com/pmontalb/NpyCpp/actions/workflows/coverage.yml)
+
 # Npy++
 This library has been forked from [this](https://github.com/rogersce/cnpy/) one, for the purpose of using more C++ infrastructure. The original README is [here](https://github.com/rogersce/cnpy/blob/master/README.md).
 
