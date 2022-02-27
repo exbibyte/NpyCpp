@@ -54,16 +54,16 @@ jobs:
 
       - name: Cmake
         run: |
-          cd ${{runner.workspace}}
-          cp ${{runner.workspace}}/cmake/CMakePresets.json ${{runner.workspace}}/CMakePresets.json
+          cd ${{runner.workspace}}/NpyCpp
+          cp ${{runner.workspace}}/NpyCpp/cmake/CMakePresets.json ${{runner.workspace}}/NpyCpp/CMakePresets.json
           cmake . --preset=${{matrix.preset}}
 
       - name: Build
         run: |
-          cd ${{runner.workspace}}/cmake-build-${{matrix.preset}}
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-${{matrix.preset}}
           ninja
 
       - name: Test
         run: |
-          cd ${{runner.workspace}}/cmake-build-${{matrix.preset}}
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-${{matrix.preset}}
           ninja build_and_test

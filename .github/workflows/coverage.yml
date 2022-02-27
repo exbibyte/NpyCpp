@@ -55,24 +55,24 @@ jobs:
 
       - name: Cmake
         run: |
-          cd ${{runner.workspace}}
-          cp ${{runner.workspace}}/cmake/CMakePresets.json ${{runner.workspace}}/CMakePresets.json
+          cd ${{runner.workspace}}/NpyCpp
+          cp ${{runner.workspace}}/NpyCpp/cmake/CMakePresets.json ${{runner.workspace}}/NpyCpp/CMakePresets.json
           cmake . --preset=gcc-coverage
 
       - name: Build
         run: |
-          cd ${{runner.workspace}}/cmake-build-gcc-coverage
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
           ninja
 
       - name: Test
         run: |
-          cd ${{runner.workspace}}/cmake-build-gcc-coverage
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
           ninja build_and_test
           
       - name: Coverage report
         shell: bash
         run: |
-          cd ${{runner.workspace}}/cmake-build-gcc-coverage
+          cd ${{runner.workspace}}/NpyCpp/cmake-build-gcc-coverage
           mkdir Coverage
           cd Coverage
           gcovr -r ../ -x coverage.xml --xml-pretty --exclude-directories='.*cnpy.*' --gcov-exclude='.*cnpy.*' --exclude-unreachable-branches --exclude-throw-branches --gcov-executable=gcov-11 -s
