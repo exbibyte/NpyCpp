@@ -1,15 +1,17 @@
 
-create_test(
-		NAME
-			cNpyTests
-		SOURCES
-			main.cpp
-			cnpyUnitTests.cpp
-		DEPENDENCIES
-			cnpy
-		SYSTEM_DEPENDENCIES
-			gtest pthread
-)
+if (NOT (CMAKE_BUILD_TYPE STREQUAL "Ubsan"))
+	create_test(
+			NAME
+				cNpyTests
+			SOURCES
+				main.cpp
+				cnpyUnitTests.cpp
+			DEPENDENCIES
+				cnpy
+			SYSTEM_DEPENDENCIES
+				gtest pthread
+	)
+endif()
 
 create_test(
 		NAME
