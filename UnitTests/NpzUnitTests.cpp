@@ -1,32 +1,28 @@
 #include "pch.h"
 #include <Npy++.h>
 
-#include<complex>
-#include<cstdlib>
-#include<iostream>
-#include<map>
-#include<string>
-#include<array>
+#include <complex>
+#include <cstdlib>
+#include <map>
+#include <string>
 
-constexpr size_t Nx{ 128 };
-constexpr size_t Ny{ 64 };
-constexpr size_t Nz{ 32 };
-constexpr size_t TotalSize{ Nx * Ny * Nz };
-const std::vector<size_t> shape{ Nz, Ny, Nx };
+constexpr size_t Nx { 128 };
+constexpr size_t Ny { 64 };
+constexpr size_t Nz { 32 };
+constexpr size_t TotalSize { Nx * Ny * Nz };
+const std::vector<size_t> shape { Nz, Ny, Nx };
 
-class NpzTests : public ::testing::Test
+class NpzTests: public ::testing::Test
 {
 public:
-	NpzTests()
-		: data(Nx*Ny*Nz)
-	{
-	}
+	NpzTests() : data(Nx * Ny * Nz) {}
 
-	void SetUp()
+	void SetUp() override
 	{
-		for (size_t i = 0; i < Nx*Ny*Nz; i++)
+		for (size_t i = 0; i < Nx * Ny * Nz; i++)
 			data[i] = std::complex<double>(rand(), rand());
 	}
+
 protected:
 	std::vector<std::complex<double>> data;
 };
@@ -110,11 +106,11 @@ TEST_F(NpzTests, ReadBigEndian)
 	auto arrayDictionary = npypp::LoadCompressedFull<uint16_t>("0123.npz");
 	ASSERT_EQ(arrayDictionary.size(), 1);
 	auto iter = arrayDictionary.begin();
-	ASSERT_EQ(iter -> first, "x");
-	auto array = iter -> second;
-	auto shape = array.shape;
-	for (size_t i = 0; i < shape.size(); i++)
-		ASSERT_EQ(shape[i], 2);
+	ASSERT_EQ(iter->first, "x");
+	auto array = iter->second;
+	auto arrayShape = array.shape;
+	for (size_t i = 0; i < arrayShape.size(); i++)
+		ASSERT_EQ(arrayShape[i], 2);
 	auto data = array.data;
 	for (size_t i = 0; i < data.size(); i++)
 		ASSERT_EQ(data[i], i);

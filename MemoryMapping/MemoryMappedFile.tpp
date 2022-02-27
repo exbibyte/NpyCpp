@@ -1,48 +1,48 @@
 #pragma once
 
-#include <stdexcept>
 #include <cstdio>
+#include <stdexcept>
 
 // OS-specific
 #ifdef _MSC_VER
-    // Windows
-    #include <windows.h>
+	// Windows
+	#include <windows.h>
 #else
-    // Linux
-    // enable large file support on 32 bit systems
-    #ifndef _LARGEFILE64_SOURCE
-        #define _LARGEFILE64_SOURCE
-    #endif
+	// Linux
+	// enable large file support on 32-bit systems
+	#ifndef _LARGEFILE64_SOURCE
+		#define _LARGEFILE64_SOURCE
+	#endif
 
-    #ifdef  _FILE_OFFSET_BITS
-        #undef  _FILE_OFFSET_BITS
-    #endif
+	#ifdef _FILE_OFFSET_BITS
+		#undef _FILE_OFFSET_BITS
+	#endif
 
-    #define _FILE_OFFSET_BITS 64
-    
-    #include <sys/stat.h>
-    #include <sys/mman.h>
-    #include <fcntl.h>
-    #include <errno.h>
-    #include <unistd.h>
-    #include <cstring>  // memcpy
-    #include <cassert> // assert
+	#define _FILE_OFFSET_BITS 64
+
+	#include <cassert>	  // assert
+	#include <cerrno>
+	#include <cstring>	  // memcpy
+	#include <fcntl.h>
+	#include <sys/mman.h>
+	#include <sys/stat.h>
+	#include <unistd.h>
 #endif
 
 namespace mm
 {
 	/// open file
 	template<CacheHint ch, MapMode mpm>
-	bool MemoryMappedFile<ch, mpm>::Open()
+	bool MemoryMappedFile<ch, mpm>::Open() noexcept
 	{
 		if (mpm != MapMode::ReadOnly)
-			assert(_mappedBytes != 0);  // size needs to be known when writing with mmap
+			assert(_mappedBytes != 0);	  // size needs to be known when writing with mmap
 
 		// already open ?
 		if (IsValid())
 			return false;
 
-		_file = 0;
+		_fileHandle = 0;
 		_fileSize = 0;
 
 #ifdef _MSC_VER
@@ -104,15 +104,14 @@ namespace mm
 		}
 		if (!_mappedFile)
 		{
-			//Get the error message, if any.
+			// Get the error message, if any.
 			DWORD errorMessageID = ::GetLastError();
 			LPSTR messageBuffer = nullptr;
-			size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-										 NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+			size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
 			std::string message(messageBuffer, size);
 
-			//Free the buffer.
+			// Free the buffer.
 			LocalFree(messageBuffer);
 
 			return false;
@@ -126,25 +125,29 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				_file = ::open(_filename.c_str(), O_RDONLY | O_LARGEFILE);
+				// NOLINTNEXTLINE(*)
+				_fileHandle = ::open(_filename.c_str(), O_RDONLY | O_LARGEFILE);
 				break;
 			case MapMode::WriteOnly:
 			case MapMode::ReadAndWrite:
-				_file = ::open(_filename.c_str(), O_RDWR | O_LARGEFILE);
+				// NOLINTNEXTLINE(*)
+				_fileHandle = ::open(_filename.c_str(), O_RDWR | O_LARGEFILE);
 				break;
-            default:
-                _file = -1;
-                break;
+			default:
+				_fileHandle = -1;
+				break;
 		}
-		if (_file == -1)
+		if (_fileHandle == -1)
 		{
-			_file = 0;
+			_fileHandle = 0;
 			return false;
 		}
 
 		// file size
-		struct stat64 statInfo{};
-		if (fstat64(_file, &statInfo) < 0)
+		struct stat64 statInfo
+		{
+		};
+		if (fstat64(_fileHandle, &statInfo) < 0)
 			return false;
 
 		_fileSize = static_cast<uint64_t>(statInfo.st_size);
@@ -158,11 +161,11 @@ namespace mm
 
 	/// close file
 	template<CacheHint ch, MapMode mpm>
-	void MemoryMappedFile<ch, mpm>::Close()
+	void MemoryMappedFile<ch, mpm>::Close() noexcept
 	{
-	        Rewind();
+		Rewind();
 		// kill pointer
-		if (_mappedView)
+		if (_mappedView != nullptr)
 		{
 #ifdef _MSC_VER
 			::UnmapViewOfFile(_mappedView);
@@ -181,46 +184,33 @@ namespace mm
 #endif
 
 		// close underlying file
-		if (_file)
+		if (_fileHandle != 0)
 		{
 #ifdef _MSC_VER
 			::CloseHandle(_file);
 #else
-			::close(_file);
+			::close(_fileHandle);
 #endif
-			_file = 0;
+			_fileHandle = 0;
 		}
 
 		_fileSize = 0;
-	}
-
-	/// access position, including range checking
-	template<CacheHint ch, MapMode mpm>
-	unsigned char MemoryMappedFile<ch, mpm>::at(size_t offset) const
-	{
-		// checks
-		if (!_mappedView)
-			throw std::invalid_argument("No view mapped");
-		if (offset >= _fileSize)
-			throw std::out_of_range("View is not large enough");
-
-		return operator[](offset);
 	}
 
 	/// replace mapping by a new one of the same file, offset MUST be a multiple of the page size
 	template<CacheHint ch, MapMode mpm>
 	bool MemoryMappedFile<ch, mpm>::ReMap(uint64_t offset, size_t mappedBytes)
 	{
-		if (!_file)
+		if (_fileHandle == 0)
 			return false;
 
 		if (mappedBytes == 0)
 			mappedBytes = _fileSize;
 
 		// close old mapping
-		if (_mappedView)
+		if (_mappedView != nullptr)
 		{
-		        Rewind();
+			Rewind();
 #ifdef _MSC_VER
 			::UnmapViewOfFile(_mappedView);
 #else
@@ -278,28 +268,33 @@ namespace mm
 		switch (mpm)
 		{
 			case MapMode::ReadOnly:
-				_mappedView = ::mmap64(nullptr, _mappedBytes, PROT_READ, MAP_SHARED, _file, static_cast<long>(offset));
+				// NOLINTNEXTLINE(*)
+				_mappedView = ::mmap64(nullptr, _mappedBytes, PROT_READ, MAP_SHARED, _fileHandle, static_cast<long>(offset));
 				break;
 			case MapMode::WriteOnly:
-				_mappedView = ::mmap64(nullptr, _mappedBytes, PROT_WRITE, MAP_SHARED, _file, static_cast<long>(offset));
+				// NOLINTNEXTLINE(*)
+				_mappedView = ::mmap64(nullptr, _mappedBytes, PROT_WRITE, MAP_SHARED, _fileHandle, static_cast<long>(offset));
 				break;
 			case MapMode::ReadAndWrite:
-				_mappedView = ::mmap64(nullptr, _mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _file, static_cast<long>(offset));
+				// NOLINTNEXTLINE(*)
+				_mappedView = ::mmap64(nullptr, _mappedBytes, PROT_READ | PROT_WRITE, MAP_SHARED, _fileHandle, static_cast<long>(offset));
 				break;
-            default:
-                _mappedView = MAP_FAILED;
-                break;
+			default:
+				// NOLINTNEXTLINE(*)
+				_mappedView = MAP_FAILED;
+				break;
 		}
 
 		_originMappedView = _mappedView;
 
+		// NOLINTNEXTLINE(*)
 		if (_mappedView == MAP_FAILED)
 		{
-			perror("mmap"); exit(EXIT_FAILURE);
+			perror("mmap");
 			_mappedBytes = 0;
 			_mappedView = nullptr;
 			_originMappedView = nullptr;
-			return false;
+			std::abort();
 		}
 
 		// tweak performance
@@ -315,8 +310,8 @@ namespace mm
 			case CacheHint::RandomAccess:
 				linuxHint = MADV_RANDOM;
 				break;
-		    default:
-		        break;
+			default:
+				break;
 		}
 
 		::madvise(_mappedView, _mappedBytes, linuxHint);
@@ -325,21 +320,8 @@ namespace mm
 #endif
 	}
 
-	/// get OS page size (for remap)
 	template<CacheHint ch, MapMode mpm>
-	int MemoryMappedFile<ch, mpm>::GetPageSize()
-	{
-#ifdef _MSC_VER
-		SYSTEM_INFO sysInfo;
-		GetSystemInfo(&sysInfo);
-		return sysInfo.dwAllocationGranularity;
-#else
-		return sysconf(_SC_PAGESIZE); //::getpagesize();
-#endif
-	}
-
-	template<CacheHint ch, MapMode mpm>
-	std::string MemoryMappedFile<ch, mpm>::ReadLine(const size_t maxCharToRead)
+	std::string MemoryMappedFile<ch, mpm>::ReadLine(const size_t maxCharToRead) noexcept
 	{
 		auto buffer = GetData();
 
@@ -352,7 +334,7 @@ namespace mm
 			++increment;
 		}
 
-		std::string out(buffer, buffer + increment + 1); // including the newline char
+		std::string out(buffer, buffer + increment + 1);	// including the newline char
 		Advance(increment);
 
 		return out;
@@ -360,27 +342,28 @@ namespace mm
 
 	template<CacheHint ch, MapMode mpm>
 	template<typename T>
-	void MemoryMappedFile<ch, mpm>::CopyTo(T* data, const size_t nElementsToRead)
-	{	
+	[[maybe_unused]] void MemoryMappedFile<ch, mpm>::CopyTo(T* data, const size_t nElementsToRead) noexcept
+	{
 		auto buffer = GetData();
 		std::memcpy(data, buffer, sizeof(T) * nElementsToRead);
 	}
 
 	template<CacheHint ch, MapMode mpm>
 	template<typename T>
-	void MemoryMappedFile<ch, mpm>::Set(const T*& data)
+	void MemoryMappedFile<ch, mpm>::Set(const T*& data) noexcept
 	{
 		auto buffer = GetData();
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
 		data = reinterpret_cast<const T*>(buffer);
 	}
 
 	template<CacheHint ch, MapMode mpm>
-	void MemoryMappedFile<ch, mpm>::ReadFrom(unsigned const char* data, const size_t nElementsToWrite)
+	void MemoryMappedFile<ch, mpm>::ReadFrom(unsigned const char* data, const size_t nElementsToWrite) noexcept
 	{
-		unsigned char* buffer = reinterpret_cast<unsigned char*>(_mappedView);
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+		auto* buffer = reinterpret_cast<unsigned char*>(_mappedView);
 		std::memcpy(buffer, data, nElementsToWrite);
 
 		Advance(nElementsToWrite);
 	}
-}
-
+}	 // namespace mm

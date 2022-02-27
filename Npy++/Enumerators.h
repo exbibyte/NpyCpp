@@ -2,7 +2,6 @@
 
 enum class FileOpenMode
 {
-	Null,
 	Read,
 	Write,
 	Append,

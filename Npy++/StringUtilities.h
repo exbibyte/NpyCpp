@@ -1,25 +1,23 @@
 #pragma once
 
-#include <string>
-#include <sstream>
 #include <iterator>
+#include <sstream>
+#include <string>
 
-namespace strutils
+namespace utils
 {
-	template <class ContainerT>
+	template<class ContainerT>
 	ContainerT Tokenize(const std::string& str)
 	{
 		ContainerT out;
 
 		std::istringstream iss(str);
-		std::copy(std::istream_iterator<std::string>(iss),
-				  std::istream_iterator<std::string>(),
-				  std::back_inserter(out));
+		std::copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), std::back_inserter(out));
 
 		return out;
 	}
 
-	template <class ContainerT>
+	template<class ContainerT>
 	ContainerT Tokenize(const std::string& str, const char delim)
 	{
 		ContainerT out;
@@ -31,4 +29,4 @@ namespace strutils
 
 		return out;
 	}
-}
+}	 // namespace utils

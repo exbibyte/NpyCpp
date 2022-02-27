@@ -1,34 +1,46 @@
 #include "pch.h"
-#include <cnpy.h>
+
+#include "IgnoreWarning.h"
+
+#ifdef __clang__
+	#define __IGNORE_CNPY_WARNINGS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             \
+		__IGNORE_WARNING__("-Wold-style-cast")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
+		__IGNORE_WARNING__("-Wzero-as-null-pointer-constant")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  \
+		__IGNORE_WARNING__("-Wsign-conversion")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                \
+		__IGNORE_WARNING__("-Wcast-qual")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
+		__IGNORE_WARNING__("-Wshorten-64-to-32")
+#else
+	#define __IGNORE_CNPY_WARNINGS
+#endif
+
+__START_IGNORING_WARNINGS__
+__IGNORE_CNPY_WARNINGS
+#include "cnpy/cnpy.h"
+__STOP_IGNORING_WARNINGS__
+
 #include <Npy++.h>
-#include <cnpy.h>
 
-#include<complex>
-#include<cstdlib>
-#include<iostream>
-#include<map>
-#include<string>
-#include<array>
+#include <complex>
+#include <cstdlib>
+#include <map>
 
-constexpr size_t Nx{ 128 };
-constexpr size_t Ny{ 64 };
-constexpr size_t Nz{ 32 };
-constexpr size_t TotalSize{ Nx * Ny * Nz };
-const std::vector<size_t> shape{ Nz, Ny, Nx };
+constexpr size_t Nx { 128 };
+constexpr size_t Ny { 64 };
+constexpr size_t Nz { 32 };
+constexpr size_t TotalSize { Nx * Ny * Nz };
+const std::vector<size_t> shape { Nz, Ny, Nx };
 
-class NpyTests : public ::testing::Test
+class NpyTests: public ::testing::Test
 {
 public:
-	NpyTests()
-		: data(Nx*Ny*Nz)
-	{
-	}
+	NpyTests() : data(Nx * Ny * Nz) {}
 
-	void SetUp()
+	void SetUp() override
 	{
-		for (size_t i = 0; i < Nx*Ny*Nz; i++) 
+		for (size_t i = 0; i < Nx * Ny * Nz; i++)
 			data[i] = std::complex<double>(rand(), rand());
 	}
+
 protected:
 	std::vector<std::complex<double>> data;
 };
@@ -107,4 +119,3 @@ TEST_F(NpyTests, AppendFull)
 		ASSERT_TRUE(data[i] == loadedData.data[i + TotalSize]);
 	}
 }
-
