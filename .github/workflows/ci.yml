@@ -29,6 +29,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Checkout submodules
+        shell: bash
+        run: |
+          git submodule init
+          git submodule update --init --recursive
+
       - name: Install cmake
         uses: jwlawson/actions-setup-cmake@v1.12
         with:
