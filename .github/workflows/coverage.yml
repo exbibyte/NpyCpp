@@ -28,6 +28,9 @@ jobs:
       - name: Checkout submodules
         shell: bash
         run: |
+          git config --file .gitmodules --get-regexp url | while read url; do
+          git config --file=.gitmodules $(echo "$url" | sed -E "s/git@github.com:|https:\/\/github.com\//https:\/\/${{ secrets.CI_PAT }}:${{ secrets.CI_PAT }}@github.com\//")
+          done
           git submodule init
           git submodule update --init --recursive
 
