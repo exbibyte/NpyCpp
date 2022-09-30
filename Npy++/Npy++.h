@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <array>
 
 #include <Enumerators.h>
 #include <MemoryMapEnumerators.h>
@@ -18,13 +19,16 @@
 		#ifdef __clang__
 			#define UNUSED __attribute__((unused))
 			#define UNUSED_BUT_SET
+			#define UNUSED_ON_NDEBUG(x)
 		#else
 			#define UNUSED __attribute__((unused))
 			#define UNUSED_BUT_SET UNUSED
+			#define UNUSED_ON_NDEBUG(x)
 		#endif
 	#else
 		#define UNUSED
 		#define UNUSED_BUT_SET
+		#define UNUSED_ON_NDEBUG(x) x
 	#endif
 #else
 	#define UNUSED
@@ -159,8 +163,10 @@ namespace npypp
 
 		static inline void ParseNpyHeader(const std::vector<unsigned char>& buffer, size_t& wordSize, std::vector<size_t>& shape, bool& fortranOrder, char& endianness)
 		{
+#ifndef NDEBUG
 			constexpr int preambleSize { 11 };
 			assert(buffer.size() > preambleSize);
+#endif
 			const auto headerBufferSize = std::min(buffer.size(), 256ul);
 			std::ostringstream ss;
 			for (size_t i = 0; i < headerBufferSize; i++)

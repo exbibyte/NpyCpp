@@ -6,7 +6,7 @@ create_library(
     SOURCES
         dummy.cpp
     PUBLIC_INCLUDE_DIRECTORIES
-        . ../MemoryMapping
+        . ../MemoryMapping ../
     SYSTEM_DEPENDENCIES
         z
 )

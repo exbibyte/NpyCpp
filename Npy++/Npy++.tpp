@@ -440,7 +440,7 @@ namespace npypp
 		{
 			constexpr size_t localHeaderSize { 30 };
 			std::array<char, localHeaderSize> localHeader {};
-			size_t UNUSED_BUT_SET elementsRead = fread(localHeader.data(), sizeof(char), localHeaderSize, fp);
+			UNUSED_ON_NDEBUG(size_t elementsRead = ) fread(localHeader.data(), sizeof(char), localHeaderSize, fp);
 			assert(elementsRead == localHeaderSize);
 
 			// if we've reached the global header, stop reading
@@ -451,7 +451,7 @@ namespace npypp
 			uint16_t vectorNameLength = 0;
 			std::memcpy(&vectorNameLength, &localHeader[26], sizeof(vectorNameLength));
 			std::string vectorName(vectorNameLength, ' ');
-			elementsRead = fread(vectorName.data(), sizeof(char), vectorNameLength, fp);
+			UNUSED_ON_NDEBUG(elementsRead = ) fread(vectorName.data(), sizeof(char), vectorNameLength, fp);
 			assert(elementsRead == vectorNameLength);
 
 			// remove the extenstion (i.e. ".npy")
@@ -463,7 +463,7 @@ namespace npypp
 			if (extraFieldsLength > 0)
 			{
 				std::string tmp(extraFieldsLength, ' ');
-				elementsRead = fread(tmp.data(), sizeof(char), extraFieldsLength, fp);
+				UNUSED_ON_NDEBUG(elementsRead = ) fread(tmp.data(), sizeof(char), extraFieldsLength, fp);
 				assert(elementsRead == extraFieldsLength);
 			}
 
