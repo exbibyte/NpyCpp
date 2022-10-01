@@ -282,7 +282,7 @@ namespace npypp
 			assert(wordSize == sizeof(T));
 			assert(actualShape.size() == shape.size());
 
-			for (size_t i = 0; i < shape.size(); i++)
+			for (size_t i = 1; i < shape.size(); i++)
 				assert(shape[i] == actualShape[i]);
 			actualShape[0] += shape[0];
 		}
