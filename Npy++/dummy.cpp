@@ -1,3 +1,3 @@
 
-#include "MemoryMapping/MemoryMappedFile.h"
+#include "MemoryMappedFile.h"
 #include "Npy++.h"

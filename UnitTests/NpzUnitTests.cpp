@@ -111,7 +111,7 @@ TEST_F(NpzTests, ReadBigEndian)
 	auto arrayShape = array.shape;
 	for (size_t i = 0; i < arrayShape.size(); i++)
 		ASSERT_EQ(arrayShape[i], 2);
-	auto data = array.data;
-	for (size_t i = 0; i < data.size(); i++)
-		ASSERT_EQ(data[i], i);
+	auto d = array.data;
+	for (size_t i = 0; i < d.size(); i++)
+		ASSERT_EQ(d[i], i);
 }

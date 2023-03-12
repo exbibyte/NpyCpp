@@ -18,11 +18,11 @@ namespace npypp
 	{
 #pragma region Type Traits
 
-#define MAKE_TYPE_TRAITS(TYPE, CHAR)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           \
-	template<>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
-	struct Traits<TYPE>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        \
-	{                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
-		static constexpr char id { CHAR };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     \
+#define MAKE_TYPE_TRAITS(TYPE, CHAR)                                                                                                                                                                   \
+	template<>                                                                                                                                                                                         \
+	struct Traits<TYPE>                                                                                                                                                                                \
+	{                                                                                                                                                                                                  \
+		static constexpr char id { CHAR };                                                                                                                                                             \
 	}
 
 		MAKE_TYPE_TRAITS(float, 'f');
@@ -129,8 +129,7 @@ namespace npypp
 				for (size_t j = 0; j < sizeOfT; j++)
 					dst[j] = src[sizeOfT - j - 1];
 
-				// NOLINTNEXTLINE
-				buffer[i] = *reinterpret_cast<T*>(dst.data());
+				std::memcpy(buffer + i, dst.data(), sizeOfT);
 			}
 		}
 
@@ -198,7 +197,7 @@ namespace npypp
 			char endianness = 0;
 			detail::ParseNpyHeader(mmf, wordSize, shape, fortranOrder, endianness);
 			mmf.Advance(1);	   // getting rid of the newline char
-			mmf.Set(data);	  // no copy, just a reinterpret cast
+			mmf.Set(data);	   // no copy, just a reinterpret cast
 		}
 
 #pragma region Npz Utilities
@@ -249,7 +248,7 @@ namespace npypp
 			array.data.resize(nElements);
 			size_t nElementsInBytes = nElements * sizeof(T);
 			size_t offset = uncompressedBytes - nElementsInBytes;
-			memcpy(array.data.data(), bufferUncompressed.data() + offset, nElementsInBytes);
+			std::memcpy(array.data.data(), bufferUncompressed.data() + offset, nElementsInBytes);
 
 			if (endianness != '|' && (endianness != SysEndianness()))
 				SwapEndianness(array.data);
@@ -406,7 +405,8 @@ namespace npypp
 		// get Npz info
 		std::string localHeader = detail::GetLocalHeader(crc, static_cast<uint32_t>(totalNpyFileBytes), vectorName);
 		detail::AppendGlobalHeader(globalHeader, localHeader, static_cast<uint32_t>(globalHeaderOffset), vectorName);
-		std::string footer = detail::GetNpzFooter(globalHeader, static_cast<uint32_t>(globalHeaderOffset), static_cast<uint32_t>(localHeader.size()), static_cast<uint32_t>(totalNpyFileBytes), static_cast<uint16_t>(nRecords + 1));
+		std::string footer = detail::GetNpzFooter(globalHeader, static_cast<uint32_t>(globalHeaderOffset), static_cast<uint32_t>(localHeader.size()), static_cast<uint32_t>(totalNpyFileBytes),
+												  static_cast<uint16_t>(nRecords + 1));
 
 		// write
 		[[maybe_unused]] size_t elementsWritten = fwrite(localHeader.data(), sizeof(char), localHeader.size(), fp);
@@ -440,7 +440,7 @@ namespace npypp
 		{
 			constexpr size_t localHeaderSize { 30 };
 			std::array<char, localHeaderSize> localHeader {};
-			UNUSED_ON_NDEBUG(size_t elementsRead = ) fread(localHeader.data(), sizeof(char), localHeaderSize, fp);
+			UNUSED_ON_NDEBUG(size_t elementsRead =) fread(localHeader.data(), sizeof(char), localHeaderSize, fp);
 			assert(elementsRead == localHeaderSize);
 
 			// if we've reached the global header, stop reading
@@ -451,7 +451,7 @@ namespace npypp
 			uint16_t vectorNameLength = 0;
 			std::memcpy(&vectorNameLength, &localHeader[26], sizeof(vectorNameLength));
 			std::string vectorName(vectorNameLength, ' ');
-			UNUSED_ON_NDEBUG(elementsRead = ) fread(vectorName.data(), sizeof(char), vectorNameLength, fp);
+			UNUSED_ON_NDEBUG(elementsRead =) fread(vectorName.data(), sizeof(char), vectorNameLength, fp);
 			assert(elementsRead == vectorNameLength);
 
 			// remove the extenstion (i.e. ".npy")
@@ -463,7 +463,7 @@ namespace npypp
 			if (extraFieldsLength > 0)
 			{
 				std::string tmp(extraFieldsLength, ' ');
-				UNUSED_ON_NDEBUG(elementsRead = ) fread(tmp.data(), sizeof(char), extraFieldsLength, fp);
+				UNUSED_ON_NDEBUG(elementsRead =) fread(tmp.data(), sizeof(char), extraFieldsLength, fp);
 				assert(elementsRead == extraFieldsLength);
 			}
 

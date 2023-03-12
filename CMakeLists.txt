@@ -5,6 +5,9 @@ project(NpyCpp)
 
 include(${CMAKE_SOURCE_DIR}/cmake/All.cmake)
 
-add_subdirectory(cnpy)
 add_subdirectory(Npy++)
-add_subdirectory(UnitTests)
+
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+	add_subdirectory(cnpy)
+	add_subdirectory(UnitTests)
+endif ()
